@@ -9,6 +9,9 @@ DEFAULT_NAME = "MoYoung Watch"
 
 # MoYoung command/data service (0xFEEA) + the characteristics we use.
 FEEA_SERVICE = "0000feea-0000-1000-8000-00805f9b34fb"
+# Advertised local_name(s) for units that DO NOT advertise FEEA_SERVICE (e.g. TG38 / MOY-ERJ3).
+# Used for BLE auto-discovery (manifest) + manual-pick filtering so they don't need a manual MAC.
+MOYOUNG_LOCAL_NAMES = ("TG38",)
 STEPS_CHAR = "0000fee1-0000-1000-8000-00805f9b34fb"     # read/notify: pedometer
 CTRL_CHAR = "0000fee2-0000-1000-8000-00805f9b34fb"      # write-no-resp: commands / face control
 DATA_CHAR = "0000fee6-0000-1000-8000-00805f9b34fb"      # write-no-resp: image chunks

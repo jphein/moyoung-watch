@@ -9,11 +9,16 @@ from homeassistant.components.bluetooth import (BluetoothServiceInfoBleak,
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_ADDRESS
 
-from .const import DEFAULT_NAME, DOMAIN, FEEA_SERVICE
+from .const import DEFAULT_NAME, DOMAIN, FEEA_SERVICE, MOYOUNG_LOCAL_NAMES
 
 
 def _is_moyoung(info: BluetoothServiceInfoBleak) -> bool:
-    return FEEA_SERVICE in (uuid.lower() for uuid in info.service_uuids)
+    if FEEA_SERVICE in (uuid.lower() for uuid in info.service_uuids):
+        return True
+    # Some MoYoung units (e.g. TG38 / MOY-ERJ3) advertise a local_name but NOT the feea service
+    # UUID, so the service-uuid match alone misses them — they otherwise need a manual MAC. Match
+    # the known advertised name(s) too so they auto-discover (mirrors the manifest local_name matcher).
+    return (info.name or "").strip() in MOYOUNG_LOCAL_NAMES
 
 
 class MoyoungConfigFlow(ConfigFlow, domain=DOMAIN):
