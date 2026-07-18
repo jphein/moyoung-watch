@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MoYoung Watch — Home Assistant control + solar watch faces</title>
+<meta name="description" content="Drive a MoYoung-v2 / Da Fit smartwatch (MOY-ERJ3) entirely from Home Assistant over Bluetooth — custom solar watch faces, live injection, follow-me lighting, and a standalone CLI.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='8' y='3' width='16' height='26' rx='5' fill='%230a0d12' stroke='%23f5a623' stroke-width='2'/%3E%3Ccircle cx='16' cy='11' r='3.4' fill='%23f5a623'/%3E%3Ctext x='16' y='24' font-size='7' text-anchor='middle' fill='%2343d17a' font-family='monospace' font-weight='bold'%3E9:05%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0b0e14; --bg2:#11151f; --card:#141926; --line:#232a3a;
+    --fg:#e8ecf4; --muted:#9aa6bd; --accent:#f5a623; --accent2:#43d17a; --link:#7aa2f7;
+    --shadow:0 8px 30px rgba(0,0,0,.45);
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#f6f7fb; --bg2:#eef1f7; --card:#ffffff; --line:#e2e6ef;
+      --fg:#1a2030; --muted:#5b667e; --accent:#d98209; --accent2:#1f9d57; --link:#2d5bd0;
+      --shadow:0 8px 30px rgba(20,30,60,.10);
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:linear-gradient(180deg,var(--bg),var(--bg2));color:var(--fg);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  a{color:var(--link);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 20px}
+  code{background:color-mix(in srgb,var(--fg) 10%,transparent);padding:.12em .4em;border-radius:5px;
+    font:13.5px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  pre{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;
+    overflow-x:auto;box-shadow:var(--shadow)}
+  pre code{background:none;padding:0}
+
+  header.hero{padding:64px 0 40px;text-align:center}
+  .badge{display:inline-block;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);
+    border-radius:999px;padding:5px 13px;margin-bottom:20px}
+  h1{font-size:clamp(2rem,5vw,3.2rem);line-height:1.08;margin:.1em 0 .3em;letter-spacing:-.02em}
+  h1 .grad{background:linear-gradient(90deg,var(--accent),var(--accent2));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{font-size:clamp(1rem,2.2vw,1.22rem);color:var(--muted);max-width:640px;margin:0 auto 26px}
+  .cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .btn{display:inline-block;padding:11px 20px;border-radius:10px;font-weight:600;font-size:15px;
+    border:1px solid var(--line)}
+  .btn.primary{background:linear-gradient(90deg,var(--accent),#ffbf50);color:#20160a;border:none}
+  .btn.ghost{background:var(--card);color:var(--fg)}
+
+  section{padding:34px 0}
+  h2{font-size:1.5rem;margin:0 0 6px;letter-spacing:-.01em}
+  .lead{color:var(--muted);margin:0 0 22px}
+
+  .faces{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  @media (max-width:720px){.faces{grid-template-columns:1fr;max-width:280px;margin:0 auto}}
+  .faceCard{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;
+    text-align:center;box-shadow:var(--shadow)}
+  .faceCard svg{width:100%;max-width:180px;height:auto;filter:drop-shadow(0 6px 16px rgba(0,0,0,.35))}
+  .faceCard h3{margin:14px 0 2px;font-size:1.02rem}
+  .faceCard p{margin:0;color:var(--muted);font-size:13.5px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+  .feat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 18px 16px}
+  .feat .ic{font-size:1.5rem}
+  .feat h3{margin:.5em 0 .25em;font-size:1.04rem}
+  .feat p{margin:0;color:var(--muted);font-size:14.5px}
+
+  table{width:100%;border-collapse:collapse;font-size:14.5px;overflow:hidden;
+    border:1px solid var(--line);border-radius:12px}
+  th,td{text-align:left;padding:10px 13px;border-bottom:1px solid var(--line)}
+  th{background:color-mix(in srgb,var(--fg) 5%,transparent);font-weight:600}
+  tr:last-child td{border-bottom:none}
+  td code{white-space:nowrap}
+
+  footer{padding:40px 0 60px;color:var(--muted);font-size:14px;border-top:1px solid var(--line);
+    margin-top:30px;text-align:center}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="badge">MoYoung-v2 · Da Fit · MOY-ERJ3 / TG38</span>
+    <h1>A cheap smartwatch,<br><span class="grad">run entirely from Home&nbsp;Assistant</span></h1>
+    <p class="sub">No phone. No vendor app. Stock firmware. Custom solar watch faces, live value
+      injection, follow-me lighting and a camera-shutter light remote — all over Bluetooth
+      through your ESPHome proxies.</p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/jphein/moyoung-watch">View on GitHub</a>
+      <a class="btn ghost" href="face-builder.html">Face builder &amp; field reference →</a>
+    </div>
+  </div>
+</header>
+
+<section id="faces">
+  <div class="wrap">
+    <h2>☀️ Solar watch faces</h2>
+    <p class="lead">A big solar State-of-Charge hero, a 12-hour clock (leading-zero drop + AM/PM),
+      watch-native date &amp; battery — in three colours that <strong>auto-switch with your
+      electricity rate</strong>.</p>
+    <div class="faces">
+
+      <div class="faceCard">
+        <!-- OFF-PEAK (green) -->
+        <svg viewBox="0 0 240 284" role="img" aria-label="Solar face, off-peak green theme">
+          <defs><radialGradient id="g1" cx="50%" cy="18%" r="46%">
+            <stop offset="0%" stop-color="rgb(200,255,205)"/>
+            <stop offset="45%" stop-color="rgb(70,200,110)" stop-opacity=".5"/>
+            <stop offset="100%" stop-color="rgb(12,34,26)" stop-opacity="0"/></radialGradient></defs>
+          <rect width="240" height="284" rx="46" fill="rgb(12,34,26)"/>
+          <path d="M0 214H240V238Q240 284 194 284H46Q0 284 0 238Z" fill="rgb(6,18,14)"/>
+          <rect width="240" height="150" fill="url(#g1)"/>
+          <circle cx="120" cy="54" r="25" fill="rgb(120,230,140)"/>
+          <circle cx="120" cy="54" r="13" fill="rgb(200,255,205)"/>
+          <g fill="rgb(28,70,60)" stroke="rgb(10,30,24)" stroke-width="1.5">
+            <rect x="34" y="220" width="30" height="20"/><rect x="70" y="220" width="30" height="20"/>
+            <rect x="106" y="220" width="30" height="20"/><rect x="142" y="220" width="30" height="20"/>
+            <rect x="178" y="220" width="30" height="20"/></g>
+          <rect x="196" y="12" width="17" height="11" rx="2" fill="none" stroke="rgb(150,205,175)" stroke-width="1.4"/>
+          <text x="190" y="22" text-anchor="end" font-size="12" font-weight="700" fill="rgb(150,205,175)" font-family="sans-serif">86</text>
+          <text x="120" y="116" text-anchor="middle" font-size="50" font-weight="800" fill="rgb(224,255,228)" font-family="sans-serif">78<tspan font-size="30" fill="rgb(150,235,165)">%</tspan></text>
+          <rect x="74" y="130" width="92" height="22" rx="11" fill="rgb(18,52,40)" stroke="rgb(70,200,110)" stroke-width="1.3"/>
+          <text x="120" y="145" text-anchor="middle" font-size="12.5" font-weight="700" fill="rgb(170,245,185)" font-family="sans-serif">OFF-PEAK</text>
+          <text x="112" y="192" text-anchor="middle" font-size="40" font-weight="800" fill="rgb(232,248,238)" font-family="sans-serif">9:05</text>
+          <text x="182" y="176" font-size="13" font-weight="700" fill="rgb(205,245,215)" font-family="sans-serif">AM</text>
+          <text x="120" y="234" text-anchor="middle" font-size="15" font-weight="700" fill="rgb(206,232,214)" font-family="sans-serif">WED 07-18</text>
+        </svg>
+        <h3>Off-peak</h3><p>Cheap power — relax</p>
+      </div>
+
+      <div class="faceCard">
+        <!-- PART PEAK (amber) -->
+        <svg viewBox="0 0 240 284" role="img" aria-label="Solar face, part-peak amber theme">
+          <defs><radialGradient id="g2" cx="50%" cy="18%" r="46%">
+            <stop offset="0%" stop-color="rgb(255,214,130)"/>
+            <stop offset="45%" stop-color="rgb(245,140,40)" stop-opacity=".5"/>
+            <stop offset="100%" stop-color="rgb(38,28,12)" stop-opacity="0"/></radialGradient></defs>
+          <rect width="240" height="284" rx="46" fill="rgb(38,28,12)"/>
+          <path d="M0 214H240V238Q240 284 194 284H46Q0 284 0 238Z" fill="rgb(20,14,6)"/>
+          <rect width="240" height="150" fill="url(#g2)"/>
+          <circle cx="120" cy="54" r="25" fill="rgb(255,176,60)"/>
+          <circle cx="120" cy="54" r="13" fill="rgb(255,214,130)"/>
+          <g fill="rgb(86,62,30)" stroke="rgb(34,22,8)" stroke-width="1.5">
+            <rect x="34" y="220" width="30" height="20"/><rect x="70" y="220" width="30" height="20"/>
+            <rect x="106" y="220" width="30" height="20"/><rect x="142" y="220" width="30" height="20"/>
+            <rect x="178" y="220" width="30" height="20"/></g>
+          <rect x="196" y="12" width="17" height="11" rx="2" fill="none" stroke="rgb(215,190,150)" stroke-width="1.4"/>
+          <text x="190" y="22" text-anchor="end" font-size="12" font-weight="700" fill="rgb(215,190,150)" font-family="sans-serif">86</text>
+          <text x="120" y="116" text-anchor="middle" font-size="50" font-weight="800" fill="rgb(255,244,220)" font-family="sans-serif">78<tspan font-size="30" fill="rgb(250,190,90)">%</tspan></text>
+          <rect x="70" y="130" width="100" height="22" rx="11" fill="rgb(56,40,18)" stroke="rgb(245,140,40)" stroke-width="1.3"/>
+          <text x="120" y="145" text-anchor="middle" font-size="12.5" font-weight="700" fill="rgb(255,200,110)" font-family="sans-serif">PART PEAK</text>
+          <text x="112" y="192" text-anchor="middle" font-size="40" font-weight="800" fill="rgb(248,240,226)" font-family="sans-serif">9:05</text>
+          <text x="182" y="176" font-size="13" font-weight="700" fill="rgb(255,225,190)" font-family="sans-serif">AM</text>
+          <text x="120" y="234" text-anchor="middle" font-size="15" font-weight="700" fill="rgb(236,226,210)" font-family="sans-serif">WED 07-18</text>
+        </svg>
+        <h3>Part-peak</h3><p>Moderate — mind usage</p>
+      </div>
+
+      <div class="faceCard">
+        <!-- PEAK (red) -->
+        <svg viewBox="0 0 240 284" role="img" aria-label="Solar face, peak red theme">
+          <defs><radialGradient id="g3" cx="50%" cy="18%" r="46%">
+            <stop offset="0%" stop-color="rgb(255,160,130)"/>
+            <stop offset="45%" stop-color="rgb(235,70,50)" stop-opacity=".5"/>
+            <stop offset="100%" stop-color="rgb(42,16,16)" stop-opacity="0"/></radialGradient></defs>
+          <rect width="240" height="284" rx="46" fill="rgb(42,16,16)"/>
+          <path d="M0 214H240V238Q240 284 194 284H46Q0 284 0 238Z" fill="rgb(22,8,8)"/>
+          <rect width="240" height="150" fill="url(#g3)"/>
+          <circle cx="120" cy="54" r="25" fill="rgb(255,90,70)"/>
+          <circle cx="120" cy="54" r="13" fill="rgb(255,160,130)"/>
+          <g fill="rgb(92,40,40)" stroke="rgb(36,14,14)" stroke-width="1.5">
+            <rect x="34" y="220" width="30" height="20"/><rect x="70" y="220" width="30" height="20"/>
+            <rect x="106" y="220" width="30" height="20"/><rect x="142" y="220" width="30" height="20"/>
+            <rect x="178" y="220" width="30" height="20"/></g>
+          <rect x="196" y="12" width="17" height="11" rx="2" fill="none" stroke="rgb(215,165,158)" stroke-width="1.4"/>
+          <text x="190" y="22" text-anchor="end" font-size="12" font-weight="700" fill="rgb(215,165,158)" font-family="sans-serif">86</text>
+          <text x="120" y="116" text-anchor="middle" font-size="50" font-weight="800" fill="rgb(255,232,224)" font-family="sans-serif">78<tspan font-size="30" fill="rgb(255,130,105)">%</tspan></text>
+          <rect x="88" y="130" width="64" height="22" rx="11" fill="rgb(58,24,22)" stroke="rgb(235,70,50)" stroke-width="1.3"/>
+          <text x="120" y="145" text-anchor="middle" font-size="12.5" font-weight="700" fill="rgb(255,150,130)" font-family="sans-serif">PEAK</text>
+          <text x="112" y="192" text-anchor="middle" font-size="40" font-weight="800" fill="rgb(250,234,230)" font-family="sans-serif">9:05</text>
+          <text x="182" y="176" font-size="13" font-weight="700" fill="rgb(255,205,195)" font-family="sans-serif">AM</text>
+          <text x="120" y="234" text-anchor="middle" font-size="15" font-weight="700" fill="rgb(240,222,218)" font-family="sans-serif">WED 07-18</text>
+        </svg>
+        <h3>Peak</h3><p>Expensive — conserve</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <h2>What it does</h2>
+    <p class="lead">A Home Assistant integration, HA packages, watch faces and a standalone CLI.</p>
+    <div class="grid">
+      <div class="feat"><div class="ic">⌚</div><h3>HA integration</h3><p>Battery &amp; steps sensors, nearest-proxy room tracking, and control services — HACS-installable.</p></div>
+      <div class="feat"><div class="ic">☀️</div><h3>Solar faces</h3><p>Big SoC hero, 12-hour clock with AM/PM, watch-native date &amp; battery. Flash over BLE, no phone.</p></div>
+      <div class="feat"><div class="ic">💉</div><h3>Live injection</h3><p><code>moyoung.weather</code> paints any number onto a face field — grid kW, solar SoC, whatever you drive from HA.</p></div>
+      <div class="feat"><div class="ic">💡</div><h3>Follow-me lights</h3><p>Lights in whatever room the watch is in follow you, per-room gated by nearest BLE proxy.</p></div>
+      <div class="feat"><div class="ic">📸</div><h3>Camera-shutter remote</h3><p>The watch's shutter button toggles the lights in its current room — a pocket remote you already own.</p></div>
+      <div class="feat"><div class="ic">🐍</div><h3>Standalone CLI</h3><p>Scan, inspect, control and flash faces from a terminal — no Home Assistant required.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="install">
+  <div class="wrap">
+    <h2>Install</h2>
+    <p class="lead">You need Home Assistant with at least one ESPHome Bluetooth proxy in range of the watch.</p>
+    <p><strong>1. Integration (HACS)</strong> — add this repo as a custom repository (category
+      <em>Integration</em>), install <strong>MoYoung Watch</strong>, restart HA, then
+      <em>Settings → Devices &amp; Services → Add Integration → MoYoung Watch</em>.</p>
+    <p><strong>2. Automations</strong> — drop the <code>packages/moyoung_*.yaml</code> you want into
+      HA's <code>packages/</code> directory.</p>
+    <p><strong>3. Faces</strong> — pre-built <code>.bin</code> faces ship in <code>watchfaces/</code>;
+      rebuild them with:</p>
+    <pre><code>cd watchfaces/dawft &amp;&amp; ./get-dawft.sh     # fetch the GPL packer (once)
+cd ../solar-soc &amp;&amp; python3 build_tou.py   # → solar-offpeak/partial/peak.bin</code></pre>
+    <p><strong>4. CLI (optional)</strong> — <code>cd client &amp;&amp; pip install -e .</code>, then
+      <code>moyoung scan</code>.</p>
+  </div>
+</section>
+
+<section id="protocol">
+  <div class="wrap">
+    <h2>The protocol, briefly</h2>
+    <p class="lead">The MoYoung-v2 / Da Fit watches speak a small byte protocol on a single GATT
+      service — <em>not</em> the protobuf of the unrelated Actions/Zephyr watches.</p>
+    <table>
+      <tr><th>Piece</th><th>Detail</th></tr>
+      <tr><td>Service</td><td><code>0xFEEA</code> — control, data (image chunks), notify &amp; steps characteristics</td></tr>
+      <tr><td>Framing</td><td><code>FE EA | flags | len | cmd | payload…</code>, written to the control characteristic</td></tr>
+      <tr><td>Faces</td><td>a MoYoung <code>.bin</code> container of RLE / raw RGB565 blobs + a table of positioned fields</td></tr>
+      <tr><td>Injection</td><td>the firmware repositions value-driven fields at render time; <code>WEATHER_TEMP</code> takes an arbitrary number</td></tr>
+      <tr><td>Source</td><td>control/sync ported clean-room from Gadgetbridge's MoYoung coordinator</td></tr>
+    </table>
+    <p style="margin-top:16px">Full notes in <a href="PROTOCOL.md">PROTOCOL.md</a>; every embeddable
+      face field is documented interactively in the <a href="face-builder.html">face builder</a>.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>MIT-licensed. Built on <a href="https://gadgetbridge.org/gadgets/wearables/moyoung/">Gadgetbridge</a>,
+      <a href="https://github.com/david47k/dawft">dawft</a> and
+      <a href="https://github.com/VicGuy/DaFup">DaFup</a>.<br>
+      Not affiliated with MoYoung, Da Fit, or any watch vendor.</p>
+  </div>
+</footer>
+
+</body>
+</html>

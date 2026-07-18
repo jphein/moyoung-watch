@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MoYoung Face Builder &amp; Field Reference</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='8' y='3' width='16' height='26' rx='5' fill='%230a0d12' stroke='%237aa2f7' stroke-width='2'/%3E%3Ctext x='16' y='19' font-size='8' text-anchor='middle' fill='%2343d17a' font-family='monospace' font-weight='bold'%3E10:09%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    --ground: #0a0d12; --panel: #141b26; --panel2: #1b2430; --line: #26313f;
+    --text: #e7edf5; --muted: #8b98a9; --dim: #5f6b7c;
+    --blue: #7aa2f7; --red: #ff3b30; --green: #43d17a; --pink: #f77c9a;
+    --amber: #f5a623; --cyan: #6fd3e0;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, sans-serif;
+    --maxw: 1180px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --ground:#eef1f6; --panel:#ffffff; --panel2:#f4f7fb; --line:#d5dce6;
+            --text:#152030; --muted:#5a6675; --dim:#8b97a6; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ground); color: var(--text);
+         font-family: var(--sans); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+  a { color: var(--blue); }
+  h1,h2,h3 { text-wrap: balance; line-height: 1.15; margin: 0; }
+  .eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .18em;
+             text-transform: uppercase; color: var(--blue); }
+  .muted { color: var(--muted); }
+  em { font-style: normal; color: var(--text); }
+  code { font-family: var(--mono); font-size: .9em; background: var(--panel2);
+         padding: 1px 6px; border-radius: 5px; border: 1px solid var(--line); }
+
+  /* ---- header ---- */
+  header { border-bottom: 1px solid var(--line);
+           background: linear-gradient(180deg, var(--panel) 0%, var(--ground) 100%); }
+  .hero { display: grid; grid-template-columns: 340px 1fr; gap: 44px;
+          padding: 48px 24px 44px; align-items: center; max-width: var(--maxw); margin: 0 auto; }
+  .hero h1 { font-size: clamp(28px, 3.6vw, 44px); font-weight: 800; letter-spacing: -.02em;
+             margin: 14px 0 12px; }
+  .hero p { color: var(--muted); font-size: 16px; max-width: 48ch; margin: 0; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+  .badge { font-family: var(--mono); font-size: 11.5px; color: var(--muted);
+           border: 1px solid var(--line); border-radius: 999px; padding: 5px 11px;
+           background: var(--panel2); }
+  .badge b { color: var(--text); font-weight: 600; }
+
+  /* ---- watch preview (rectangular) ---- */
+  .watchcol { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .body-shell { width: 264px; height: 304px; border-radius: 42px; flex: 0 0 auto;
+           background: radial-gradient(circle at 50% 30%, #1a222e, #05070a 78%);
+           box-shadow: 0 30px 60px -24px #000c, inset 0 0 0 5px #05070a, inset 0 0 0 7px #232c3a;
+           display: grid; place-items: center; padding: 12px; }
+  canvas.face { border-radius: 30px; width: 240px; height: 280px; background: #05070a; }
+  .live { font-family: var(--mono); font-size: 11px; color: var(--dim);
+          display: flex; align-items: center; gap: 7px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+         box-shadow: 0 0 0 3px #43d17a22; animation: pulse 2.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .35; } }
+  @media (prefers-reduced-motion: reduce) { .dot { animation: none; } }
+
+  /* ---- controls ---- */
+  .controls { display: grid; gap: 14px; }
+  .ctl-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .toggle { display: flex; align-items: center; gap: 9px; font-family: var(--mono);
+            font-size: 13px; padding: 9px 11px; border: 1px solid var(--line);
+            border-radius: 9px; background: var(--panel2); cursor: pointer;
+            user-select: none; transition: border-color .15s, background .15s; }
+  .toggle:hover { border-color: var(--blue); }
+  .toggle input { accent-color: var(--blue); width: 15px; height: 15px; margin: 0; }
+  .sw { width: 9px; height: 9px; border-radius: 2px; flex: 0 0 auto; display: inline-block;
+        margin-right: 8px; vertical-align: middle; }
+  input:focus-visible, .toggle:focus-within { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+  /* ---- sections ---- */
+  main { padding: 56px 0 80px; }
+  section { padding: 40px 0; border-top: 1px solid var(--line); }
+  section > .wrap > h2 { font-size: 24px; font-weight: 750; letter-spacing: -.01em; margin-bottom: 6px; }
+  .lead { color: var(--muted); max-width: 70ch; margin: 8px 0 26px; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px,1fr)); gap: 14px; }
+  .card { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 18px; }
+  .card h3 { font-family: var(--mono); font-size: 14px; color: var(--text); margin-bottom: 7px;
+             display: flex; align-items: center; gap: 8px; }
+  .card p { color: var(--muted); font-size: 13.5px; margin: 0; }
+  .card .tag { font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em;
+               text-transform: uppercase; color: var(--dim); }
+
+  /* ---- field matrix ---- */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 13.5px; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line); }
+  thead th { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+             color: var(--muted); background: var(--panel2); position: sticky; top: 0; }
+  tbody td:first-child { font-family: var(--mono); color: var(--cyan); white-space: nowrap; }
+  tbody td:nth-child(2) { font-family: var(--mono); color: var(--text); white-space: nowrap; }
+  td.ct { text-align: center; font-family: var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+  tbody tr:last-child td { border-bottom: none; }
+  tr.grouprow td { background: var(--panel2); font-weight: 700; font-family: var(--sans);
+                   letter-spacing: .01em; color: var(--text); border-bottom: 1px solid var(--line); }
+  tbody tr:not(.grouprow):hover { background: var(--panel2); }
+
+  .callout { border: 1px solid var(--line); border-left: 3px solid var(--blue);
+             background: var(--panel); border-radius: 10px; padding: 16px 18px; margin: 18px 0; }
+  .callout.warn { border-left-color: var(--amber); }
+  .callout.diff { border-left-color: var(--pink); }
+  .callout h3 { font-size: 15px; margin-bottom: 6px; }
+  .callout p { color: var(--muted); font-size: 14px; margin: 6px 0 0; }
+
+  .steps { display: grid; gap: 12px; counter-reset: s; }
+  .step { display: grid; grid-template-columns: 30px 1fr; gap: 14px; align-items: start; }
+  .step::before { counter-increment: s; content: counter(s); font-family: var(--mono);
+                  font-size: 13px; color: var(--blue); border: 1px solid var(--line);
+                  border-radius: 8px; width: 30px; height: 30px; display: grid; place-items: center; }
+  .step p { margin: 3px 0 0; color: var(--muted); font-size: 14px; }
+  .step b { color: var(--text); font-weight: 600; }
+
+  pre { font-family: var(--mono); font-size: 12.5px; background: var(--panel); border: 1px solid var(--line);
+        border-radius: 10px; padding: 14px 16px; overflow-x: auto; color: var(--text); }
+  pre .c { color: var(--dim); }
+
+  footer { border-top: 1px solid var(--line); padding: 28px 24px; text-align: center;
+           color: var(--dim); font-family: var(--mono); font-size: 12px; }
+
+  @media (max-width: 820px) {
+    .hero { grid-template-columns: 1fr; gap: 28px; text-align: center; }
+    .hero p { margin-inline: auto; }
+    .badges { justify-content: center; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hero">
+    <div class="watchcol">
+      <div class="body-shell"><canvas class="face" width="480" height="560" aria-label="Live watch face preview"></canvas></div>
+      <div class="live"><span class="dot"></span> live preview · toggle the fields</div>
+    </div>
+    <div>
+      <div class="eyebrow">MoYoung-v2 · MOY-ERJ3 · custom watch faces</div>
+      <h1>Face Builder &amp; Field Reference</h1>
+      <p>Every live field the MoYoung / Da Fit face format can paint into a custom watch face — mapped from the format tooling and flashed over Bluetooth onto a real MOY-ERJ3 with our own CLI.</p>
+      <div class="badges">
+        <span class="badge"><b>67</b> face fields</span>
+        <span class="badge"><b>2</b> inject slots</span>
+        <span class="badge">full <b>CLI</b> + <b>HA</b></span>
+        <span class="badge">BLE-proxy <b>room tracking</b></span>
+        <span class="badge">verified <b>on-glass</b></span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section style="border-top:none">
+    <div class="wrap">
+      <div class="eyebrow">Try it</div>
+      <h2>Compose a face</h2>
+      <p class="lead">Toggle fields on and off — the preview shows roughly what the watch paints. On a MoYoung face you design the <em>glyphs and their placement</em>; the firmware fills in the live value (time, steps, heart rate, battery, weather). There is no free-form text channel — every value is one of the field types below.</p>
+      <div class="controls">
+        <div class="ctl-grid" id="toggles"></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="eyebrow">Concept</div>
+      <h2>How a custom face works</h2>
+      <p class="lead">A face is a binary container: a header, a list of <em>fields</em> (each a type code + on-screen rectangle), and the bitmap blobs the fields draw. You supply the artwork; the watch supplies the data.</p>
+      <div class="steps">
+        <div class="step"><div><b>Design the fields.</b><p>Pick field types (e.g. <code>BACKGROUND</code>, <code>TIME_H1..M2</code>, <code>STEPS</code>, <code>HR</code>, <code>BATT</code>) and lay out each one's rectangle. Digit fields need a strip of glyph bitmaps (usually 10, for 0–9); icon/progress fields need their frames.</p></div></div>
+        <div class="step"><div><b>Pack the .bin.</b><p>Bitmaps + layout compile into the MoYoung binary (Type A/B/C — B/C use a full-screen background and per-field placement). <code>david47k/dawft</code> builds and dumps these; our CLI's <code>inspect</code> reads the header back.</p></div></div>
+        <div class="step"><div><b>Flash over Bluetooth.</b><p>Streamed to the watch over GATT service <code>0xFEEA</code> — announce size, push the image in MTU-sized chunks, wait for the completion ack, activate the slot. No app, no cloud.</p></div></div>
+        <div class="step"><div><b>The watch fills in the values.</b><p>Once installed, the firmware paints the current time / steps / HR / battery / weather into the fields you placed. You're designing where and how each value appears — not sending the values.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="eyebrow">The map</div>
+      <h2>Every embeddable field</h2>
+      <p class="lead">The complete field-type table the MoYoung firmware understands, grouped by what they show. <b>Frames</b> is how many bitmaps that field needs (10 = a 0–9 digit strip; 11 = a 0–100% progress bar; 12 = month names; 7 = weekday names; 1 = a single image). Generated from the same table our CLI's <code>list-fields</code> prints.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Code</th><th>Field</th><th>Shows</th><th>Frames</th></tr></thead>
+          <tbody>
+            <tr class="grouprow"><td colspan="4"><span class="sw" style="background:var(--muted)"></span>Background</td></tr>
+            <tr><td>0x00</td><td>BACKGROUNDS</td><td>Background in 10 strips of 240x24 (Type A). May include example time, overwritten.</td><td class="ct">10</td></tr>
+            <tr><td>0x01</td><td>BACKGROUND</td><td>Full-screen background image (Type B &amp; C).</td><td class="ct">1</td></tr>
+            <tr class="grouprow"><td colspan="4"><span class="sw" style="background:var(--blue)"></span>Time</td></tr>
+            <tr><td>0x40</td><td>TIME_H1</td><td>Hour, tens digit (H_:mm).</td><td class="ct">10</td></tr>
+            <tr><td>0x41</td><td>TIME_H2</td><td>Hour, ones digit (_H:mm).</td><td class="ct">10</td></tr>
+            <tr><td>0x43</td><td>TIME_M1</td><td>Minute, tens digit (hh:M_).</td><td class="ct">10</td></tr>
+            <tr><td>0x44</td><td>TIME_M2</td><td>Minute, ones digit (hh:_M).</td><td class="ct">10</td></tr>
+            <tr><td>0x45</td><td>TIME_AM</td><td>&#x27;AM&#x27; indicator.</td><td class="ct">1</td></tr>
+            <tr><td>0x46</td><td>TIME_PM</td><td>&#x27;PM&#x27; indicator.</td><td class="ct">1</td></tr>
+            <tr><td>0xf0</td><td>SEPERATOR</td><td>Static date/time separator glyph, e.g. &#x27;:&#x27; or &#x27;/&#x27;.</td><td class="ct">1</td></tr>
+            <tr class="grouprow"><td colspan="4"><span class="sw" style="background:var(--cyan)"></span>Date</td></tr>
+            <tr><td>0x10</td><td>MONTH_NAME</td><td>Month name: JAN..DEC.</td><td class="ct">12</td></tr>
+            <tr><td>0x11</td><td>MONTH_NUM</td><td>Month as digits.</td><td class="ct">10</td></tr>
+            <tr><td>0x12</td><td>YEAR</td><td>Year, 2 digits, left aligned.</td><td class="ct">10</td></tr>
+            <tr><td>0x30</td><td>DAY_NUM</td><td>Day of month, digits.</td><td class="ct">10</td></tr>
+            <tr><td>0x60</td><td>DAY_NAME</td><td>Weekday: SUN..SAT.</td><td class="ct">7</td></tr>
+            <tr><td>0x61</td><td>DAY_NAME_CN</td><td>Weekday with Chinese symbol option.</td><td class="ct">7</td></tr>
+            <tr><td>0x6b</td><td>MONTH_NUM_B</td><td>Month digits, alternate glyph set.</td><td class="ct">10</td></tr>
+            <tr><td>0x6c</td><td>DAY_NUM_B</td><td>Day-of-month digits, alternate glyph set.</td><td class="ct">10</td></tr>
+            <tr class="grouprow"><td colspan="4"><span class="sw" style="background:var(--green)"></span>Steps</td></tr>
+            <tr><td>0x62</td><td>STEPS</td><td>Step count, left aligned, digits.</td><td class="ct">10</td></tr>
+            <tr><td>0x63</td><td>STEPS_CA</td><td>Step count, centre aligned.</td><td class="ct">10</td></tr>
+            <tr><td>0x64</td><td>STEPS_RA</td><td>Step count, right aligned.</td><td class="ct">10</td></tr>
+            <tr><td>0x70</td><td>STEPS_PROGBAR</td><td>Steps progress bar, 11 frames (0,10,..100%).</td><td class="ct">11</td></tr>
+            <tr><td>0x71</td><td>STEPS_LOGO</td><td>Steps static logo/icon.</td><td class="ct">1</td></tr>
+            <tr><td>0x72</td><td>STEPS_B</td><td>Step count, left aligned, alternate glyphs.</td><td class="ct">10</td></tr>
+            <tr><td>0x73</td><td>STEPS_B_CA</td><td>Step count, centre aligned, alternate glyphs.</td><td class="ct">10</td></tr>
+            <tr><td>0x74</td><td>STEPS_B_RA</td><td>Step count, right aligned, alternate glyphs.</td><td class="ct">10</td></tr>
+            <tr><td>0x76</td><td>STEPS_GOAL</td><td>Step goal, left aligned, digits.</td><td class="ct">10</td></tr>
+            <tr class="grouprow"><td colspan="4"><span class="sw" style="background:var(--red)"></span>Heart rate</td></tr>
+            <tr><td>0x65</td><td>HR</td><td>Heart rate, left aligned, digits.</td><td class="ct">10</td></tr>
+            <tr><td>0x66</td><td>HR_CA</td><td>Heart rate, centre aligned.</td><td class="ct">10</td></tr>
+            <tr><td>0x67</td><td>HR_RA</td><td>Heart rate, right aligned.</td><td class="ct">10</td></tr>
+            <tr><td>0x80</td><td>HR_PROGBAR</td><td>Heart-rate progress bar, 11 frames.</td><td class="ct">11</td></tr>
+            <tr><td>0x81</td><td>HR_LOGO</td><td>Heart-rate static logo/icon.</td><td class="ct">1</td></tr>
+            <tr><td>0x82</td><td>HR_B</td><td>Heart rate, left aligned, alternate glyphs.</td><td class="ct">10</td></tr>
+            <tr><td>0x83</td><td>HR_B_CA</td><td>Heart rate, centre aligned, alternate glyphs.</td><td class="ct">10</td></tr>
+            <tr><td>0x84</td><td>HR_B_RA</td><td>Heart rate, right aligned, alternate glyphs.</td><td class="ct">10</td></tr>
+            <tr class="grouprow"><td colspan="4"><span class="sw" style="background:var(--amber)"></span>Calories</td></tr>
+            <tr><td>0x68</td><td>KCAL</td><td>Calories, left aligned, digits.</td><td class="ct">10</td></tr>
+            <tr><td>0x90</td><td>KCAL_PROGBAR</td><td>Calories progress bar, 11 frames.</td><td class="ct">11</td></tr>
+            <tr><td>0x91</td><td>KCAL_LOGO</td><td>Calories static logo/icon.</td><td class="ct">1</td></tr>
+            <tr><td>0x92</td><td>KCAL_B</td><td>Calories, left aligned, alternate glyphs.</td><td class="ct">10</td></tr>
+            <tr><td>0x93</td><td>KCAL_B_CA</td><td>Calories, centre aligned, alternate glyphs.</td><td class="ct">10</td></tr>
+            <tr><td>0x94</td><td>KCAL_B_RA</td><td>Calories, right aligned, alternate glyphs.</td><td class="ct">10</td></tr>
+            <tr class="grouprow"><td colspan="4"><span class="sw" style="background:var(--pink)"></span>Distance</td></tr>
+            <tr><td>0xa0</td><td>DIST_PROGBAR</td><td>Distance progress bar, 11 frames.</td><td class="ct">11</td></tr>
+            <tr><td>0xa1</td><td>DIST_LOGO</td><td>Distance static logo/icon.</td><td class="ct">1</td></tr>
+            <tr><td>0xa2</td><td>DIST</td><td>Distance, left aligned, digits (has a decimal point).</td><td class="ct">10</td></tr>
+            <tr><td>0xa3</td><td>DIST_CA</td><td>Distance, centre aligned.</td><td class="ct">10</td></tr>
+            <tr><td>0xa4</td><td>DIST_RA</td><td>Distance, right aligned.</td><td class="ct">10</td></tr>
+            <tr><td>0xa5</td><td>DIST_KM</td><td>Distance unit &#x27;KM&#x27;.</td><td class="ct">1</td></tr>
+            <tr><td>0xa6</td><td>DIST_MI</td><td>Distance unit &#x27;MI&#x27;.</td><td class="ct">1</td></tr>
+            <tr class="grouprow"><td colspan="4"><span class="sw" style="background:var(--green)"></span>Battery</td></tr>
+            <tr><td>0xce</td><td>BATT_IMG</td><td>Battery level image.</td><td class="ct">1</td></tr>
+            <tr><td>0xd0</td><td>BATT_IMG_B</td><td>Battery level image, alternate.</td><td class="ct">1</td></tr>
+            <tr><td>0xd1</td><td>BATT_IMG_C</td><td>Battery level image, alternate.</td><td class="ct">1</td></tr>
+            <tr><td>0xd2</td><td>BATT</td><td>Battery %, left aligned, digits.</td><td class="ct">10</td></tr>
+            <tr><td>0xd3</td><td>BATT_CA</td><td>Battery %, centre aligned.</td><td class="ct">10</td></tr>
+            <tr><td>0xd4</td><td>BATT_RA</td><td>Battery %, right aligned.</td><td class="ct">10</td></tr>
+            <tr><td>0xda</td><td>BATT_IMG_D</td><td>Battery level image, alternate.</td><td class="ct">1</td></tr>
+            <tr class="grouprow"><td colspan="4"><span class="sw" style="background:var(--amber)"></span>Weather</td></tr>
+            <tr><td>0xd7</td><td>WEATHER_TEMP</td><td>Temperature, left aligned; 11 digits (0-9,-) + degC/degF glyphs.</td><td class="ct">13</td></tr>
+            <tr><td>0xd8</td><td>WEATHER_TEMP_CA</td><td>Temperature, centre aligned.</td><td class="ct">13</td></tr>
+            <tr><td>0xd9</td><td>WEATHER_TEMP_RA</td><td>Temperature, right aligned.</td><td class="ct">13</td></tr>
+            <tr class="grouprow"><td colspan="4"><span class="sw" style="background:var(--blue)"></span>Connectivity</td></tr>
+            <tr><td>0xc0</td><td>BTLINK_UP</td><td>Bluetooth connected indicator.</td><td class="ct">1</td></tr>
+            <tr><td>0xc1</td><td>BTLINK_DOWN</td><td>Bluetooth disconnected indicator.</td><td class="ct">1</td></tr>
+            <tr class="grouprow"><td colspan="4"><span class="sw" style="background:var(--pink)"></span>Analog</td></tr>
+            <tr><td>0xf1</td><td>HAND_HOUR</td><td>Analog hour hand (drawn at the 12:00 position).</td><td class="ct">1</td></tr>
+            <tr><td>0xf2</td><td>HAND_MINUTE</td><td>Analog minute hand (at 12:00).</td><td class="ct">1</td></tr>
+            <tr><td>0xf3</td><td>HAND_SEC</td><td>Analog second hand (at 12:00).</td><td class="ct">1</td></tr>
+            <tr><td>0xf4</td><td>HAND_PIN_UPPER</td><td>Top half of the analog centre pin.</td><td class="ct">1</td></tr>
+            <tr><td>0xf5</td><td>HAND_PIN_LOWER</td><td>Bottom half of the analog centre pin.</td><td class="ct">1</td></tr>
+            <tr class="grouprow"><td colspan="4"><span class="sw" style="background:var(--cyan)"></span>Animation</td></tr>
+            <tr><td>0xf6</td><td>TAP_TO_CHANGE</td><td>Tap-to-change image series; frame count set by animationFrames.</td><td class="ct">1</td></tr>
+            <tr><td>0xf7</td><td>ANIMATION</td><td>Animation; frame count set by animationFrames.</td><td class="ct">1</td></tr>
+            <tr><td>0xf8</td><td>ANIMATION_F8</td><td>Animation (alternate); frame count set by animationFrames.</td><td class="ct">1</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted" style="font-size:13px;margin-top:14px">67 field types. Alternate glyph variants (<code>_B</code>) let one face carry two visual styles of the same value; the alignment suffixes (<code>_CA</code>/<code>_RA</code>) pick centre/right justification. Source: <a href="https://github.com/david47k/dawft">david47k/dawft</a>.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="eyebrow">Binary layout</div>
+      <h2>Inside a face .bin</h2>
+      <p class="lead">The header is fixed; each field is a type code plus a placement rectangle; the blobs (bitmaps) follow. Type B/C use a full-screen background and 16-bit coordinates; the older Type A tiles the background in strips.</p>
+      <pre><span class="c"># header</span>
+byte 0      fileID       0x04 = Type A · 0x81 / 0x84 = Type B / C
+byte 1      dataCount    number of fields
+byte 2      blobCount    number of bitmap blobs
+bytes 3-4   faceNumber   design id (u16, little-endian)
+
+<span class="c"># fields, from byte 5</span>
+Type B/C    39 &times; 10 bytes   [type, blobIdx, x, y, w, h]   <span class="c"># x/y/w/h u16 LE</span>
+Type A      32 &times;  6 bytes   [type, x, y, w, h, blobIdx]   <span class="c"># u8 fields</span></pre>
+      <p class="muted" style="font-size:13.5px">Our CLI reads this directly — <code>moyoung inspect face.bin</code> prints each field's type, name, rectangle and blob index. Verified against a dawft-built face: the 17 declared fields round-tripped exactly.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="eyebrow">Flashing</div>
+      <h2>Getting a face onto the watch</h2>
+      <p class="lead">All of it rides GATT service <code>0xFEEA</code>: <code>0xFEE2</code> for control, <code>0xFEE6</code> for image bytes, <code>0xFEE3</code> for the device's acks. Proven end-to-end on a MOY-ERJ3 (a 63&nbsp;KB face, 259 chunks, completion ack received).</p>
+      <div class="steps">
+        <div class="step"><div><b>Verify identity.</b><p>Read the manufacturer characteristic <code>0x2A29</code>; it must say <code>MOYOUNG-V2</code>. Subscribe to notifications on <code>0xFEE3</code>.</p></div></div>
+        <div class="step"><div><b>Announce the size.</b><p>Write <code>feea&nbsp;20&nbsp;09&nbsp;74</code> + the image length (u32, big-endian) to <code>0xFEE2</code>, then settle briefly.</p></div></div>
+        <div class="step"><div><b>Stream the image.</b><p>Write the bytes to <code>0xFEE6</code> in MTU-sized chunks. On Linux/BlueZ the MTU is often left at 23, so chunk to ~244 bytes — the watch reassembles by the announced total, so chunk size is free.</p></div></div>
+        <div class="step"><div><b>Finish &amp; activate.</b><p>Wait for the notify <code>feea&nbsp;20&nbsp;09&nbsp;74&nbsp;ff</code> (transfer complete), send the finish + set-transfer commands, then <code>feea&nbsp;20&nbsp;06&nbsp;19</code> + slot to switch the watch to the new face.</p></div></div>
+      </div>
+      <pre><span class="c"># our standalone CLI (bleak, no phone / Da Fit app)</span>
+moyoung scan                          <span class="c"># find MoYoung (0xFEEA) watches</span>
+moyoung list-fields                   <span class="c"># print all 67 embeddable fields</span>
+moyoung inspect  face.bin             <span class="c"># parse a face .bin's fields</span>
+moyoung --address D8:69:.. upload-face face.bin   <span class="c"># flash it</span></pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="eyebrow">Beyond faces</div>
+      <h2>Control &amp; inject</h2>
+      <p class="lead">The same <code>0xFEEA</code> envelope carries a full command set, reverse-engineered clean-room from Gadgetbridge's MoYoung coordinator. Every command is <code>FE&nbsp;EA · len · cmdID · payload</code> — face upload is just command <code>0x74</code>. All available from the standalone <code>moyoung</code> CLI and, once configured, as Home Assistant services.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Command</th><th>What it does</th><th>Cmd</th></tr></thead>
+          <tbody>
+            <tr class="grouprow"><td colspan="3"><span class="sw" style="background:var(--green)"></span>Inject / control (write)</td></tr>
+            <tr><td>weather --temp N</td><td>push weather — <b>temp → any WEATHER_TEMP field</b> (arbitrary signed int)</td><td>0x43</td></tr>
+            <tr><td>set-goal N</td><td>set step goal — <b>→ STEPS_GOAL field</b> (arbitrary int)</td><td>0x16</td></tr>
+            <tr><td>set-time</td><td>set the clock to now (GMT+8-corrected)</td><td>0x31</td></tr>
+            <tr><td>notify "Title" --body …</td><td>notification popup — arbitrary text</td><td>0x41</td></tr>
+            <tr><td>music --track/--artist</td><td>now-playing artist/track text</td><td>0x44</td></tr>
+            <tr><td>find</td><td>buzz / ring the watch</td><td>0x61</td></tr>
+            <tr><td>upload-face / upload-bg</td><td>flash a face / background image</td><td>0x74 / 0x6e</td></tr>
+            <tr class="grouprow"><td colspan="3"><span class="sw" style="background:var(--cyan)"></span>Sync (read)</td></tr>
+            <tr><td>battery</td><td>charge %</td><td>0x2A19</td></tr>
+            <tr><td>steps</td><td>live pedometer (distance / steps / calories)</td><td>0xFEE1</td></tr>
+            <tr><td>measure-hr</td><td>trigger a live heart-rate reading</td><td>0x6D</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 style="margin-top:32px">What you can inject onto a face</h2>
+      <p class="lead">Most face fields show the watch's <em>own</em> state (steps, HR, calories, battery) and can't be faked. Exactly these carry an arbitrary external value pushed over Bluetooth:</p>
+      <div class="cards">
+        <div class="card"><h3><span class="sw" style="background:var(--amber)"></span>WEATHER_TEMP</h3><p>A signed number (−128…127) via <code>weather --temp</code>. The cleanest slot — big and purpose-built. Drives any <code>WEATHER_TEMP</code> field.</p><span class="tag">slot 1 · clean</span></div>
+        <div class="card"><h3><span class="sw" style="background:var(--green)"></span>STEPS_GOAL</h3><p>An integer (0…100k) via <code>set-goal</code>. A genuine second slot — drives the <code>STEPS_GOAL</code> field. (Overwrites the real step goal.)</p><span class="tag">slot 2 · clean</span></div>
+        <div class="card"><h3><span class="sw" style="background:var(--muted)"></span>clock / date</h3><p>Via <code>set-time</code> — hijackable like the GTX2 day-field trick, but it ticks and reformats, so it's messy. A last resort.</p><span class="tag">time-natured</span></div>
+        <div class="card"><h3><span class="sw" style="background:var(--red)"></span>not injectable</h3><p>Steps, heart rate, calories, distance and watch battery are <b>sensors the watch measures</b>. Music/notification text has <b>no face field</b>.</p><span class="tag">sensor · text</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="eyebrow">Home Assistant</div>
+      <h2>Driven from HA, over a BLE proxy</h2>
+      <p class="lead">A HAOS custom integration (<code>moyoung</code>) runs the protocol inside Home Assistant via <code>bleak</code>, routed through an ESPHome <b>Bluetooth proxy</b> with active connections — so the HA server needs no local adapter, and any room with a proxy can reach the watch.</p>
+      <div class="cards">
+        <div class="card"><h3><span class="sw" style="background:var(--blue)"></span>Entities</h3><p>Battery %, steps, <b>Location</b> (nearest-proxy room) and Signal (RSSI) — with per-proxy RSSI as attributes.</p><span class="tag">sensors</span></div>
+        <div class="card"><h3><span class="sw" style="background:var(--green)"></span>Services</h3><p><code>moyoung.set_time · weather · notify · music · find · set_goal · upload_face</code> — the CLI surfaced as HA actions for automations.</p><span class="tag">actions</span></div>
+        <div class="card"><h3><span class="sw" style="background:var(--pink)"></span>Room tracking</h3><p>Location follows whichever proxy hears the watch strongest, updating as it roams. A dashboard adds a room-over-time graph + a live per-proxy RSSI breakdown.</p><span class="tag">nearest-proxy</span></div>
+        <div class="card"><h3><span class="sw" style="background:var(--amber)"></span>Add-by-MAC gotcha</h3><p>A proxy-forwarded advert drops its service UUIDs, so <code>0xFEEA</code> auto-discovery misses the watch even though HA can connect. The config flow falls back to manual MAC entry.</p><span class="tag">proxy quirk</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="eyebrow">Worked example</div>
+      <h2>A solar dashboard face</h2>
+      <p class="lead">Both injection slots plus the clock turn the watch into a glanceable energy readout — the MoYoung analog of the GTX2 live grid-kW driver. HA keeps the two numbers live; the face ships once, no re-flash.</p>
+      <div class="cards">
+        <div class="card"><h3><span class="sw" style="background:var(--amber)"></span>Big SoC %</h3><p>Hero number = <code>WEATHER_TEMP</code>, injected from the 48V solar pack (<code>sensor.epever_battery_soc</code>) via <code>moyoung.weather</code>.</p><span class="tag">slot 1</span></div>
+        <div class="card"><h3><span class="sw" style="background:var(--blue)"></span>Clock</h3><p>The watch's own HH:MM, kept synced via <code>moyoung.set_time</code>.</p><span class="tag">native</span></div>
+        <div class="card"><h3><span class="sw" style="background:var(--green)"></span>Rate ¢/kWh</h3><p><code>STEPS_GOAL</code>, injected from a PG&E time-of-use template — <b>peak 40 · partial 33 · off-peak 20</b> — via <code>moyoung.set_goal</code>. Shows the price, implies the period.</p><span class="tag">slot 2</span></div>
+      </div>
+      <div class="callout"><h3>Live, no re-flash</h3><p>The face installs once; HA pushes the two values whenever they change — SoC follows the battery, the rate follows the time-of-use schedule. It's the pattern the GTX2 uses for grid kW, here with two independent channels instead of one.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="eyebrow">Context</div>
+      <h2>How this differs from the GTX2</h2>
+      <div class="callout diff">
+        <h3>Different chip, different reach</h3>
+        <p>The GTX2 is an Actions ATS3085 running Zephyr; this watch is a <b>Realtek RTL8762-class MoYoung-v2</b> device (Da Fit app). Both let you smuggle live external values onto a custom face (see <em>Control &amp; inject</em> above) — the GTX2 via clock fields, MoYoung via <code>WEATHER_TEMP</code> + <code>STEPS_GOAL</code>. The big difference: unlike the GTX2, <b>custom firmware isn't reachable</b> on MoYoung — its OTA path is Realtek's closed, signed channel. Custom <em>faces</em> and live injection, though, work great — all verified on-glass.</p>
+      </div>
+      <p class="muted" style="font-size:13px">Watch-face upload protocol from <a href="https://github.com/VicGuy/DaFup">VicGuy/DaFup</a>; face binary format from <a href="https://github.com/david47k/dawft">david47k/dawft</a>; control/sync protocol from <a href="https://gadgetbridge.org/gadgets/wearables/moyoung/">Gadgetbridge</a>'s MoYoung coordinator.</p>
+    </div>
+  </section>
+</main>
+
+<footer>MoYoung-v2 · MOY-ERJ3 · faces · control · injection · Home Assistant · room tracking · verified on hardware 2026-07-16</footer>
+
+<script>
+// ---- rectangular watch-face preview (240x280, drawn at 2x) ----
+const cv = document.querySelector("canvas.face");
+const ctx = cv.getContext("2d");
+const S = 2;                     // device pixels -> canvas scale
+const W = 240, H = 280;
+
+const FIELDS = [
+  { id: "time",    label: "Digital time", color: "--blue",  on: true },
+  { id: "analog",  label: "Analog hands", color: "--pink",  on: false },
+  { id: "date",    label: "Date",         color: "--cyan",  on: true },
+  { id: "weekday", label: "Weekday",      color: "--cyan",  on: true },
+  { id: "steps",   label: "Steps",        color: "--green", on: true },
+  { id: "hr",      label: "Heart rate",   color: "--red",   on: true },
+  { id: "battery", label: "Battery",      color: "--green", on: true },
+  { id: "weather", label: "Weather temp", color: "--amber", on: false },
+];
+const state = Object.fromEntries(FIELDS.map(f => [f.id, f.on]));
+
+function vv(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+function draw() {
+  ctx.save();
+  ctx.scale(S, S);
+  // background
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, "#10161f"); g.addColorStop(1, "#05070a");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+  ctx.textAlign = "center";
+
+  if (state.analog) {
+    drawAnalog();
+  } else if (state.time) {
+    ctx.fillStyle = "#eef3fb";
+    ctx.font = "600 62px ui-monospace, Menlo, monospace";
+    ctx.fillText("10:09", W / 2, 118);
+  }
+
+  // top row: weekday + date
+  ctx.font = "600 15px ui-monospace, Menlo, monospace";
+  if (state.weekday) { ctx.fillStyle = vv("--cyan"); ctx.textAlign = "left"; ctx.fillText("THU", 20, 34); }
+  if (state.date)    { ctx.fillStyle = vv("--cyan"); ctx.textAlign = "right"; ctx.fillText("16 JUL", W - 20, 34); }
+  ctx.textAlign = "center";
+
+  // weather (below clock)
+  if (state.weather) {
+    ctx.fillStyle = vv("--amber");
+    ctx.font = "600 20px ui-monospace, Menlo, monospace";
+    ctx.fillText("23°C", W / 2, 158);
+  }
+
+  // complications row
+  let y = 210;
+  if (state.steps) {
+    ctx.fillStyle = vv("--green"); ctx.textAlign = "left";
+    ctx.font = "600 13px ui-monospace, Menlo, monospace"; ctx.fillText("⬆ 8,432", 22, y);
+  }
+  if (state.hr) {
+    ctx.fillStyle = vv("--red"); ctx.textAlign = "right";
+    ctx.font = "600 13px ui-monospace, Menlo, monospace"; ctx.fillText("♥ 72", W - 22, y);
+  }
+
+  // battery bar
+  if (state.battery) {
+    const bw = 120, bx = (W - bw) / 2, by = 244, bh = 16, pct = 0.85;
+    ctx.strokeStyle = vv("--line"); ctx.lineWidth = 1.5;
+    ctx.strokeRect(bx, by, bw, bh);
+    ctx.fillStyle = vv("--green"); ctx.fillRect(bx + 2, by + 2, (bw - 4) * pct, bh - 4);
+    ctx.fillStyle = "#0b0e13"; ctx.font = "600 10px ui-monospace, monospace"; ctx.textAlign = "center";
+    ctx.fillText("85%", W / 2, by + 12);
+  }
+  ctx.restore();
+}
+
+function drawAnalog() {
+  const cx = W / 2, cy = 110, r = 66;
+  ctx.strokeStyle = vv("--line"); ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+  for (let i = 0; i < 12; i++) {
+    const a = i * Math.PI / 6;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.sin(a) * (r - 6), cy - Math.cos(a) * (r - 6));
+    ctx.lineTo(cx + Math.sin(a) * r, cy - Math.cos(a) * r);
+    ctx.strokeStyle = vv("--dim"); ctx.lineWidth = 2; ctx.stroke();
+  }
+  const hand = (ang, len, w, col) => {
+    ctx.beginPath(); ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.sin(ang) * len, cy - Math.cos(ang) * len);
+    ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineCap = "round"; ctx.stroke();
+  };
+  hand(Math.PI * 2 * (10 / 12), 36, 5, "#eef3fb");   // hour ~10
+  hand(Math.PI * 2 * (9 / 60), 54, 3, vv("--blue")); // min ~09
+  ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI * 2); ctx.fillStyle = vv("--pink"); ctx.fill();
+}
+
+// build toggles
+const box = document.getElementById("toggles");
+FIELDS.forEach(f => {
+  const l = document.createElement("label");
+  l.className = "toggle";
+  l.innerHTML = `<input type="checkbox" ${f.on ? "checked" : ""}>` +
+                `<span class="sw" style="background:var(${f.color})"></span>${f.label}`;
+  l.querySelector("input").addEventListener("change", e => {
+    state[f.id] = e.target.checked;
+    // digital and analog are mutually exclusive
+    if (f.id === "analog" && e.target.checked) { state.time = false; syncBox("time", false); }
+    if (f.id === "time" && e.target.checked) { state.analog = false; syncBox("analog", false); }
+    draw();
+  });
+  box.appendChild(l);
+});
+function syncBox(id, val) {
+  const idx = FIELDS.findIndex(f => f.id === id);
+  box.children[idx].querySelector("input").checked = val;
+}
+
+draw();
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
+</script>
+</body>
+</html>
