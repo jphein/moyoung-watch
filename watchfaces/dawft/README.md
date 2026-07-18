@@ -7,8 +7,8 @@ loads.
 
 `dawft` is a **separate, third-party tool** by David Atkinson, licensed **GPL-2.0-or-later**:
 <https://github.com/david47k/dawft>. It is deliberately **not vendored** into this repository —
-this project is MIT-licensed and we keep the GPL tool at arm's length (the builders shell out to
-it as a subprocess; they don't link it).
+this project is AGPLv3-licensed and the GPL-2.0 dawft stays at arm's length (the builders shell out to
+it as a subprocess; they don't link or vendor it).
 
 ## Get it
 

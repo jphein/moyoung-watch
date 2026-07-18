@@ -144,4 +144,4 @@ Both suites are fully offline — no BLE, no Home Assistant, no watch required.
 
 ## License
 
-MIT — see [LICENSE](LICENSE). (dawft, invoked as an external tool, is GPL-2.0 and not included.)
+**AGPL-3.0** — see [LICENSE](LICENSE). (dawft, invoked as an external tool, is GPL-2.0 and not included.)
