@@ -1,0 +1,42 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+venv/
+.venv/
+env/
+
+# --- Watch-face build intermediates ---
+# The shipped .bin faces (watchfaces/solar-soc/*.bin) ARE tracked — they are the canonical
+# artifacts. Only the regenerated per-run build folders are ignored.
+watchfaces/solar-soc/build/
+watchfaces/solar-soc/build5/
+watchfaces/solar-soc/build_*/
+
+# --- Vendored dawft (GPL; fetched, not committed) ---
+watchfaces/dawft/src/
+watchfaces/dawft/dawft
+watchfaces/dawft/*.exe
+
+# --- Home Assistant / secrets ---
+.storage/
+secrets.yaml
+*.secret
+.env
+.env.*
+
+# --- ESPHome ---
+.esphome/
+
+# --- Editor / OS cruft ---
+*.swp
+*~
+.DS_Store
+.idea/
+.vscode/

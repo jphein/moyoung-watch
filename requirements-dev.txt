@@ -1,0 +1,5 @@
+# Dev / test dependencies (the integration itself declares its runtime deps in manifest.json).
+pytest>=7           # test runner (tests/ + client/tests/)
+PyYAML>=6           # HA package structural tests
+Pillow>=10          # watch-face builders (watchfaces/solar-soc/)
+bleak>=0.22         # only needed to actually talk to a watch (client/); tests are offline
