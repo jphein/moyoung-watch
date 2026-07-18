@@ -47,13 +47,25 @@ docs/                        GitHub Pages site (landing + face builder) + protoc
 
 ## Install
 
-### 1. The Home Assistant integration (HACS)
+### 1. The Home Assistant integration
 
-Add this repository as a **custom repository** (category: *Integration*) in HACS, install
-**MoYoung Watch**, and restart HA. Then **Settings → Devices & Services → Add Integration →
-MoYoung Watch** and pick your watch (discovered over Bluetooth via your proxies).
+**With HACS** (recommended — you get update notifications):
 
-*Manual:* copy `custom_components/moyoung/` into your HA `config/custom_components/` and restart.
+[![Open your Home Assistant instance and add this repository to HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=jphein&repository=moyoung-watch&category=integration)
+
+…or manually in HACS: **⋮ → Custom repositories** → paste `https://github.com/jphein/moyoung-watch`
+(category *Integration*) → install **MoYoung Watch** → restart HA.
+
+**Without HACS** (stock HA has no repo-based install — copy one folder):
+
+```bash
+cd /config/custom_components   # your HA config dir
+git clone --depth 1 https://github.com/jphein/moyoung-watch /tmp/mw && cp -r /tmp/mw/custom_components/moyoung .
+```
+…then restart HA.
+
+Either way, finish with **Settings → Devices & Services → Add Integration → MoYoung Watch** —
+the watch is discovered over Bluetooth via your proxies.
 
 **Requires** at least one [ESPHome Bluetooth proxy](https://esphome.io/components/bluetooth_proxy/)
 with active connections, within BLE range of the watch.
