@@ -1,0 +1,85 @@
+# MoYoung watch — follow-me lighting.
+# Mirrors the Lefun-ring setup (packages/lefun_ring.yaml): the room the WATCH is in turns its
+# lights on, leaving turns them off. Driven by sensor.moyoung_watch_location (nearest BLE proxy,
+# via the moyoung coordinator's proxy_to_room). Reuses the shared script.ring_set_room_lights
+# (turns a room's "button_lights"-labelled entities on/off — same set the iTag buttons use).
+#
+# Toggles: a master (watch_follow_lights) + one per room. A room follows the watch only when BOTH
+# the master and that room's own toggle are on. Toggle slugs MUST equal the HA area_id — the
+# automation builds 'input_boolean.watch_follow_' ~ area_id.
+
+input_boolean:
+  watch_follow_lights:
+    name: "Watch follow-me lights"
+    icon: mdi:watch-vibrate
+  watch_follow_laundry:
+    name: "Watch follow-me · Laundry"
+  watch_follow_kitchen:
+    name: "Watch follow-me · Kitchen"
+  watch_follow_bedroom:
+    name: "Watch follow-me · Bedroom"
+  watch_follow_luna_s_room:
+    name: "Watch follow-me · Luna's Room"
+  watch_follow_shed:
+    name: "Watch follow-me · Shed"
+
+automation:
+  - id: watch_followme_lighting
+    alias: "Watch: follow-me lighting"
+    mode: queued
+    triggers:
+      # Watch changed rooms.
+      - trigger: state
+        entity_id: sensor.moyoung_watch_location
+      # Master just enabled -> light up whatever room the watch is currently in.
+      - trigger: state
+        entity_id: input_boolean.watch_follow_lights
+        to: "on"
+    conditions:
+      - condition: state
+        entity_id: input_boolean.watch_follow_lights
+        state: "on"
+    actions:
+      # Map the watch's nearest proxy -> HA area (same table as the ring; office proxy is in the
+      # laundry/office area). Falls back to resolving the proxy device by name.
+      - variables:
+          proxy_area:
+            laundry-ble-proxy: laundry
+            laundry-ble-proxy-2: laundry
+            office-ble-proxy: laundry
+            kitchen-ble-proxy: kitchen
+            bedroom-ble-proxy: bedroom
+            shed-ble-proxy: shed
+            lunas-room-ble-proxy: luna_s_room
+          follow_areas: [laundry, kitchen, bedroom, luna_s_room, shed]
+      - variables:
+          new_proxy: "{{ (state_attr('sensor.moyoung_watch_location','proxy') or '').split(' (')[0] }}"
+      - variables:
+          new_area: >-
+            {% set dev = device_id(new_proxy) if new_proxy else none %}
+            {{ proxy_area.get(new_proxy, area_id(dev) if dev else none) }}
+      # Only act on a real room fix. "away"/unknown leaves lights alone, so a sleeping/quiet watch
+      # (sitting still) never darkens a room it left the lights on in.
+      - condition: template
+        value_template: "{{ new_area not in [none, ''] }}"
+      # Reconcile: turn OFF every OTHER enabled follow-me room (self-healing after missed
+      # transitions / HA restarts), then turn ON the room the watch is in.
+      - repeat:
+          for_each: "{{ follow_areas }}"
+          sequence:
+            - condition: template
+              value_template: >-
+                {{ repeat.item != new_area
+                   and is_state('input_boolean.watch_follow_' ~ repeat.item, 'on') }}
+            - action: script.ring_set_room_lights
+              data:
+                area: "{{ repeat.item }}"
+                turn: "off"
+      - if:
+          - condition: template
+            value_template: "{{ is_state('input_boolean.watch_follow_' ~ new_area, 'on') }}"
+        then:
+          - action: script.ring_set_room_lights
+            data:
+              area: "{{ new_area }}"
+              turn: "on"

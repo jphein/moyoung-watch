@@ -1,0 +1,84 @@
+# MoYoung watch — camera-shutter room-light TOGGLE.
+# Companion to moyoung_follow.yaml (follow-me lighting). Where follow-me tracks the watch's ROOM
+# and turns lights on/off on entry/exit, THIS uses the watch's camera-remote SHUTTER button as a
+# hand-held toggle for whatever room the watch is currently in: press -> if that room's lights are
+# on, turn them off; else on.
+#
+# The shutter press arrives as the inbound MoYoung opcode CMD_SWITCH_CAMERA_VIEW (102 / 0x66),
+# which the moyoung integration's coordinator intercepts and re-broadcasts as the HA event
+# `moyoung_camera_shutter` (carrying the watch's current room). To use it: open the camera app on
+# the watch (or call moyoung.camera) and tap the shutter. Note: opening the camera screen emits
+# the same opcode, so the first tap that opens it also counts as one toggle — think of the whole
+# camera-remote screen as the light switch.
+#
+# Room resolution + the target light set are IDENTICAL to follow-me: sensor.moyoung_watch_location
+# -> nearest BLE proxy -> HA area, and script.ring_set_room_lights toggles that area's
+# "button_lights"-labelled entities (the same set the iTag buttons + follow-me use).
+#
+# Toggles: a master (watch_camera_lights) + one per room. A room's shutter acts only when BOTH the
+# master and that room's own toggle are on. Toggle slugs MUST equal the HA area_id — the
+# automation builds 'input_boolean.watch_camera_' ~ area_id.
+
+input_boolean:
+  watch_camera_lights:
+    name: "Watch camera-shutter lights"
+    icon: mdi:camera-iris
+  watch_camera_laundry:
+    name: "Watch shutter · Laundry"
+  watch_camera_kitchen:
+    name: "Watch shutter · Kitchen"
+  watch_camera_bedroom:
+    name: "Watch shutter · Bedroom"
+  watch_camera_luna_s_room:
+    name: "Watch shutter · Luna's Room"
+  watch_camera_shed:
+    name: "Watch shutter · Shed"
+
+automation:
+  - id: watch_camera_shutter_toggle
+    alias: "Watch: camera-shutter toggles room lights"
+    mode: queued
+    max: 5
+    triggers:
+      # The watch's camera shutter was pressed (fired by the moyoung coordinator).
+      - trigger: event
+        event_type: moyoung_camera_shutter
+    conditions:
+      - condition: state
+        entity_id: input_boolean.watch_camera_lights
+        state: "on"
+    actions:
+      # Map the watch's nearest proxy -> HA area (same table as the ring / follow-me; office
+      # proxy is in the laundry/office area). Falls back to resolving the proxy device by name.
+      - variables:
+          proxy_area:
+            laundry-ble-proxy: laundry
+            laundry-ble-proxy-2: laundry
+            office-ble-proxy: laundry
+            kitchen-ble-proxy: kitchen
+            bedroom-ble-proxy: bedroom
+            shed-ble-proxy: shed
+            lunas-room-ble-proxy: luna_s_room
+      - variables:
+          new_proxy: "{{ (state_attr('sensor.moyoung_watch_location','proxy') or '').split(' (')[0] }}"
+      - variables:
+          new_area: >-
+            {% set dev = device_id(new_proxy) if new_proxy else none %}
+            {{ proxy_area.get(new_proxy, area_id(dev) if dev else none) }}
+      # Only act on a real room fix. "away"/unknown -> do nothing (no room to toggle).
+      - condition: template
+        value_template: "{{ new_area not in [none, ''] }}"
+      # Only if this room opted in (its own toggle is on).
+      - condition: template
+        value_template: "{{ is_state('input_boolean.watch_camera_' ~ new_area, 'on') }}"
+      # Read the room's toggleable lights EXACTLY as script.ring_set_room_lights does
+      # (area_entities INTERSECT the 'button_lights' label), then flip: any on -> off, else on.
+      - variables:
+          room_lights: >-
+            {{ area_entities(new_area) | select('in', label_entities('button_lights')) | list }}
+          room_on: >-
+            {{ room_lights | select('is_state', 'on') | list | count > 0 }}
+      - action: script.ring_set_room_lights
+        data:
+          area: "{{ new_area }}"
+          turn: "{{ 'off' if room_on else 'on' }}"

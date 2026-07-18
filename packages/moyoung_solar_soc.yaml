@@ -1,0 +1,53 @@
+# ── MoYoung "Solar SoC" watch face — live driver ─────────────────────────────────────
+# Paints the solar-battery State-of-Charge onto the custom Solar SoC face (watchfaces/solar-soc/).
+# The face's hero is a WEATHER_TEMP_CA field whose two "unit" glyphs are drawn as "%", so the
+# injected value renders as e.g. "78%". We drive it with `moyoung.weather` (temp -> WEATHER_TEMP),
+# exactly like the grid-kW example in moyoung_inject.yaml.
+#
+# It fires on every SoC change (live), plus a periodic + on-start re-assert so the value (and the
+# clock) survive a watch reconnect. SoC is an integer %, so state changes are infrequent → light
+# BLE traffic.
+#
+#   ┌── TO CHANGE THE SOURCE SENSOR (e.g. to the GoodWe/BMW-i3 System B SoC): ──────────────┐
+#   │  edit the entity in TWO places below — the state trigger `entity_id` and              │
+#   │  `variables: source`. Keep them identical.                                            │
+#   └───────────────────────────────────────────────────────────────────────────────────────┘
+
+automation:
+  - id: moyoung_solar_soc_live
+    alias: "MoYoung: push solar SoC% to watch face"
+    description: >-
+      Paint the 48V EPEver battery State-of-Charge onto the Solar SoC watch face's
+      WEATHER_TEMP hero (rendered as "NN%"), and keep the watch clock synced.
+    mode: single
+    max_exceeded: silent
+    trigger:
+      - platform: state
+        entity_id: sensor.epever_battery_soc      # ◀ SOURCE SENSOR (change here + `source` below)
+        id: soc_change
+      - platform: time_pattern
+        minutes: "/30"
+        id: refresh
+      - platform: homeassistant
+        event: start
+        id: ha_start
+    variables:
+      source: sensor.epever_battery_soc           # ◀ SOURCE SENSOR (keep identical to the trigger)
+    condition:
+      - condition: template
+        value_template: "{{ states(source) not in ['unknown', 'unavailable', 'none', ''] }}"
+    action:
+      # clamp into the signed-byte range the protocol accepts (SoC is 0..100, so a no-op guard)
+      - variables:
+          soc: "{{ [[ states(source) | float(0) | round(0) | int, 127 ] | min, -128 ] | max }}"
+      - service: moyoung.weather
+        data:
+          temp: "{{ soc }}"
+          condition: sunny
+          city: "SoC"
+      # on the periodic/startup passes, also re-sync the clock (cheap, keeps HH:MM accurate)
+      - choose:
+          - conditions: "{{ trigger.id in ['refresh', 'ha_start'] }}"
+            sequence:
+              - service: moyoung.set_time
+                data: {}

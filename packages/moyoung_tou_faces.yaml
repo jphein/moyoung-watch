@@ -1,0 +1,78 @@
+# MoYoung watch — keep the watch face matched to the live PG&E TOU period.
+#
+# SOURCE OF TRUTH = sensor.pge_tou_tier (values: off_peak / partial_peak / peak) — the time-based
+# tier authority defined in pge_tou_tariff.yaml. Do NOT use select.pge_eva2: that is the Opower
+# *daily-source selector* and is deliberately never switched, so it does not track the live period
+# (it was the reason the face got stuck on 'peak').
+#
+# The watch holds ONE custom face slot, so "switching" = re-flashing the matching themed face
+# (off_peak -> green, partial_peak -> amber, peak -> red). Each ~2-min flash needs the watch
+# reachable + HA running.
+#
+# ALWAYS-CORRECT design: re-assert the face on tier change, on HA start, when the watch reconnects,
+# and every 30 min — but only actually flash when the currently-DISPLAYED period differs from the
+# live tier (tracked in input_text.moyoung_displayed_tou), so a correct face is never re-flashed.
+# A failed flash (watch asleep/out of range) leaves the tracker stale, so the next trigger retries.
+
+input_text:
+  moyoung_displayed_tou:
+    name: "MoYoung displayed TOU period"
+    max: 20
+
+script:
+  moyoung_apply_tou_face:
+    alias: "MoYoung: apply the TOU-period face"
+    mode: single
+    sequence:
+      - variables:
+          face_map:
+            off_peak: /media/moyoung/solar-offpeak.bin
+            partial_peak: /media/moyoung/solar-partial.bin
+            peak: /media/moyoung/solar-peak.bin
+          period: "{{ states('sensor.pge_tou_tier') }}"
+      - condition: template
+        value_template: "{{ period in face_map }}"
+      # skip if the watch isn't reachable (no point flashing a sleeping/absent watch)
+      - condition: template
+        value_template: "{{ states('sensor.moyoung_watch_battery') not in ['unavailable', 'unknown'] }}"
+      # skip if the watch already shows this period's face
+      - condition: template
+        value_template: "{{ states('input_text.moyoung_displayed_tou') != period }}"
+      - action: moyoung.upload_face
+        data:
+          path: "{{ face_map[period] }}"
+      - delay: "00:00:03"
+      - action: moyoung.set_time
+        data: {}
+      - action: moyoung.weather
+        data:
+          temp: "{{ [[ states('sensor.epever_battery_soc') | float(85) | round | int, 0] | max, 100] | min }}"
+      # record what's now displayed so we don't re-flash it
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.moyoung_displayed_tou
+        data:
+          value: "{{ period }}"
+
+automation:
+  - id: moyoung_tou_face_switch
+    alias: "MoYoung: keep the watch face on the current TOU period"
+    mode: single
+    max_exceeded: silent
+    triggers:
+      # live tier changed (the 3pm / 4pm / 9pm / midnight boundaries)
+      - trigger: state
+        entity_id: sensor.pge_tou_tier
+        to: ["off_peak", "partial_peak", "peak"]
+      # re-assert after an HA restart
+      - trigger: homeassistant
+        event: start
+      # self-heal: catch any missed transition
+      - trigger: time_pattern
+        minutes: "/30"
+      # the watch just reconnected (was asleep/out of range during a transition)
+      - trigger: state
+        entity_id: sensor.moyoung_watch_battery
+        from: "unavailable"
+    actions:
+      - action: script.moyoung_apply_tou_face

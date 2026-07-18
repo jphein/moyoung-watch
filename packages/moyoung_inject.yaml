@@ -1,0 +1,38 @@
+# MoYoung value injection — push a live HA value onto the watch face.
+#
+# The MoYoung `weather` service writes an arbitrary signed number into any WEATHER_TEMP field
+# on the active face (the analog of the GTX2 day-field trick). Flash a face that includes a
+# WEATHER_TEMP field, then drive it from any HA sensor. This mirrors the GTX2 live-kW driver.
+#
+# Set input_number.moyoung_inject_source (or edit the trigger) to the entity you want on-glass.
+# Drop this file in /homeassistant/packages/ (loaded via !include_dir_named).
+
+input_number:
+  moyoung_inject_value:
+    name: MoYoung injected value
+    min: -128
+    max: 127
+    step: 1
+
+automation:
+  - id: moyoung_inject_gridkw
+    alias: "MoYoung: push grid kW to watch face"
+    description: >-
+      Example: round the live grid-power sensor to an int and push it to the watch's
+      WEATHER_TEMP field. Swap sensor.grid_power_kw for whatever you want displayed.
+    mode: single
+    max_exceeded: silent
+    trigger:
+      - platform: state
+        entity_id: sensor.grid_power_kw
+    condition:
+      - condition: template
+        value_template: "{{ states('sensor.grid_power_kw') not in ['unknown','unavailable'] }}"
+    action:
+      - variables:
+          value: "{{ [[states('sensor.grid_power_kw')|float(0)|round(0)|int, 127]|min, -128]|max }}"
+      - service: moyoung.weather
+        data:
+          temp: "{{ value }}"
+          condition: sunny
+          city: "kW"

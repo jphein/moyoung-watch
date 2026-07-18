@@ -1,0 +1,174 @@
+# MoYoung Watch dashboard — reference copy of the storage-mode Lovelace dashboard at
+# url_path "moyoung-watch" (created/updated via the Lovelace WS API; see scratch ws_dash*.py).
+# View 1 "Status": live status + room tracking by nearest BLE proxy.
+# View 2 "Solar Faceplate": mirror of the custom solar face (SoC / clock / TOU rate) + operations.
+title: MoYoung Watch
+views:
+  - title: Status
+    path: status
+    icon: mdi:watch
+    cards:
+      - type: markdown
+        content: |
+          ## ⌚ MoYoung Watch — MOY-ERJ3
+          Live status and **room tracking** by nearest BLE proxy.
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: gauge
+            entity: sensor.moyoung_watch_battery
+            name: Battery
+            min: 0
+            max: 100
+            needle: true
+            severity: { green: 50, yellow: 20, red: 0 }
+          - type: tile
+            entity: sensor.moyoung_watch_location
+            name: Location
+            icon: mdi:map-marker
+            color: blue
+          - type: tile
+            entity: sensor.moyoung_watch_rssi
+            name: Signal
+          - type: tile
+            entity: sensor.moyoung_watch_steps
+            name: Steps
+      - type: history-graph
+        title: Room over time (tracking)
+        hours_to_show: 24
+        entities: [{ entity: sensor.moyoung_watch_location }]
+      - type: history-graph
+        title: Signal strength
+        hours_to_show: 12
+        entities: [{ entity: sensor.moyoung_watch_rssi }]
+      - type: markdown
+        title: Proxies hearing the watch
+        content: >
+          {% set p = state_attr('sensor.moyoung_watch_location','proxies') %}{% if p %}{%
+          for name, rssi in p.items() | sort(attribute='1', reverse=true) %}- **{{
+          name.split(' (')[0] }}**: {{ rssi }} dBm
+
+          {% endfor %}{% else %}_No proxy currently hears the watch._{% endif %}
+      # Follow-me lighting toggles (package: moyoung_follow.yaml). Master + per-room; a room
+      # follows the watch only when both the master and that room's toggle are on.
+      - type: entities
+        title: "⌚ Follow-me lighting"
+        show_header_toggle: false
+        entities:
+          - entity: sensor.moyoung_watch_location
+            name: Watch is in
+            icon: mdi:map-marker
+          - type: divider
+          - entity: input_boolean.watch_follow_lights
+            name: Follow-me (master)
+          - entity: input_boolean.watch_follow_laundry
+            name: Laundry
+          - entity: input_boolean.watch_follow_kitchen
+            name: Kitchen
+          - entity: input_boolean.watch_follow_bedroom
+            name: Bedroom
+          - entity: input_boolean.watch_follow_luna_s_room
+            name: Luna's Room
+          - entity: input_boolean.watch_follow_shed
+            name: Shed
+      # Camera-shutter light TOGGLE (package: moyoung_camera_lights.yaml). Press the watch's
+      # camera-remote shutter -> toggle the lights in whatever room the watch is in. A room's
+      # shutter acts only when both the master and that room's toggle are on. The "Last shutter
+      # press" event entity is provided by the integration's event platform (needs the integration
+      # deploy + restart to appear; shows unavailable until then).
+      - type: entities
+        title: "📸 Camera-shutter lights"
+        show_header_toggle: false
+        entities:
+          - entity: sensor.moyoung_watch_location
+            name: Watch is in
+            icon: mdi:map-marker
+          - entity: event.moyoung_watch_camera_shutter
+            name: Last shutter press
+            icon: mdi:camera-iris
+          - type: divider
+          - entity: input_boolean.watch_camera_lights
+            name: Shutter toggle (master)
+          - entity: input_boolean.watch_camera_laundry
+            name: Laundry
+          - entity: input_boolean.watch_camera_kitchen
+            name: Kitchen
+          - entity: input_boolean.watch_camera_bedroom
+            name: Bedroom
+          - entity: input_boolean.watch_camera_luna_s_room
+            name: Luna's Room
+          - entity: input_boolean.watch_camera_shed
+            name: Shed
+
+  - title: Solar Faceplate
+    path: solar
+    icon: mdi:solar-power-variant
+    cards:
+      - type: markdown
+        content: >
+          ## ☀️ Solar Faceplate
+
+          What the custom watch face shows — a **big solar SoC%** and a **clock**. HA keeps the
+          SoC live on the watch face (SoC → `WEATHER_TEMP` via `moyoung.weather`); no re-flash.
+          The **live electricity rate** is shown here on the dashboard — the watch's second
+          injectable slot (`STEPS_GOAL`) renders as corrupted pixels on this firmware, so the
+          rate stays dashboard-only.
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: gauge
+            entity: sensor.epever_battery_soc
+            name: Solar SoC
+            min: 0
+            max: 100
+            needle: true
+            severity: { red: 0, yellow: 30, green: 60 }
+          - type: markdown
+            content: >
+              <h1 style='font-size:2.6em;text-align:center;margin:.2em 0'>{{
+              now().strftime('%H:%M') }}</h1>
+              <div style='text-align:center'>clock</div>
+      - type: markdown
+        title: Electricity rate (PG&E EV2-A, live)
+        content: >
+          {% set cents = states('sensor.moyoung_rate_cents') %}{% set lbl =
+          state_attr('sensor.moyoung_rate_cents','period') or
+          states('sensor.pge_tou_tier')|replace('_',' ')|title %}
+          <h1 style='font-size:2.4em;margin:.1em 0'>{{ cents }} <span
+          style='font-size:.5em'>¢/kWh</span></h1>
+
+          **{{ lbl }}** · PG&E EV2-A (authoritative)
+      - type: markdown
+        content: >
+          **On-glass mapping** — solar SoC → the hero `WEATHER_TEMP` number (injected live via
+          `moyoung.weather`) · time → the watch clock (kept synced via `moyoung.set_time`). The
+          rate is **not** pushed to the watch on this firmware (see above); it lives on this
+          dashboard only.
+      - type: markdown
+        content: "### Operations"
+      - type: horizontal-stack
+        cards:
+          - type: button
+            name: Find watch
+            icon: mdi:bell-ring
+            tap_action: { action: perform-action, perform_action: moyoung.find, data: {} }
+          - type: button
+            name: Sync clock
+            icon: mdi:clock-check
+            tap_action: { action: perform-action, perform_action: moyoung.set_time, data: {} }
+          - type: button
+            name: Flash solar face
+            icon: mdi:cellphone-arrow-down
+            tap_action:
+              action: perform-action
+              perform_action: moyoung.upload_face
+              data: { path: /media/moyoung/solar-hero5.bin }
+      - type: markdown
+        content: >
+          _SoC% pushes automatically on change (the rate is dashboard-only on this firmware).
+          Parameterised ops (`weather`, `notify`, `music`, `set_goal`) are in **Developer Tools
+          → Actions**. Flash-solar-face needs a built `.bin` copied to the path above on the HA
+          host (see `watchfaces/`); TOU-period auto-switching faces are handled by the
+          `moyoung_tou_faces` package._

@@ -1,0 +1,58 @@
+# ── MoYoung "Solar SoC" face — TOU electricity rate ──────────────────────────────────
+# Provides `sensor.moyoung_rate_cents` — the current PG&E electricity price in whole ¢/kWh —
+# for the HA "Solar Faceplate" dashboard tile.
+#
+# NOTE: the on-WATCH rate was dropped. STEPS_GOAL (0x76) — the only 2nd injectable slot — renders
+# as corrupted pixels on the MOY-ERJ3 firmware (verified on-glass 2026-07-16), so the rate lives
+# on the dashboard only. The `moyoung.set_goal` push is therefore DISABLED below (it showed
+# nothing on-glass and risked spurious "goal reached" buzzes since goal=~54 steps is trivially
+# met). Re-enable the automation block *only* if a STEPS_GOAL rendering fix is found (see
+# build.py INCLUDE_RATE).
+#
+# RATE SOURCE (corrected 2026-07-16): `sensor.pge_current_price` from packages/pge_tou_tariff.yaml
+# — the OFFICIAL PG&E EV2-A bundled rates (Cal. P.U.C. sheets, eff. 2026-03-01), season-aware and
+# CARE-adjusted, switched by `sensor.pge_tou_tier` at the real EV2-A boundaries, matching what the
+# PG&E **Opower** integration auto-fetches (`select.pge_eva2`).
+#   Summer  peak .53809 (→ "54")  partial .42760 (→ "43")  off .22558 (→ "23")
+#   Winter  peak .41099 (→ "41")  partial .39428 (→ "39")  off .22558 (→ "23")
+# (We deliberately do NOT use the input_number.pge_*_cost helpers — those were a stale 40/33/20
+#  set. Edit the schedule/prices in pge_tou_tariff.yaml, the one source.)
+
+template:
+  - sensor:
+      - name: "MoYoung Rate Cents"
+        unique_id: moyoung_rate_cents
+        unit_of_measurement: "¢/kWh"
+        icon: mdi:cash-clock
+        # authoritative live $/kWh -> whole cents; auto-updates when the tier/season/price changes
+        state: "{{ (states('sensor.pge_current_price') | float(0) * 100) | round(0) | int }}"
+        availability: "{{ has_value('sensor.pge_current_price') }}"
+        attributes:
+          period: "{{ state_attr('sensor.pge_tou_tier', 'label') }}"
+          dollars_per_kwh: "{{ states('sensor.pge_current_price') }}"
+
+# ─── DISABLED: on-watch rate push (STEPS_GOAL doesn't render on this firmware) ──────────
+# Re-enable this block (and set build.py INCLUDE_RATE=True) only if STEPS_GOAL is made to render.
+# automation:
+#   - id: moyoung_push_tou_rate
+#     alias: "MoYoung: push TOU rate to watch step-goal"
+#     description: Push the live PG&E ¢/kWh onto the face's STEPS_GOAL field. Overwrites the step goal.
+#     mode: single
+#     max_exceeded: silent
+#     trigger:
+#       - platform: state
+#         entity_id: sensor.moyoung_rate_cents
+#         id: rate_change
+#       - platform: homeassistant
+#         event: start
+#         id: ha_start
+#       - platform: time_pattern
+#         minutes: "/30"
+#         id: refresh
+#     condition:
+#       - condition: template
+#         value_template: "{{ states('sensor.moyoung_rate_cents') not in ['unknown', 'unavailable', 'none', ''] }}"
+#     action:
+#       - service: moyoung.set_goal
+#         data:
+#           steps: "{{ states('sensor.moyoung_rate_cents') | int(0) }}"
