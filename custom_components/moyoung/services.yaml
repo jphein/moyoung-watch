@@ -1,0 +1,200 @@
+set_time:
+  name: Set time
+  description: Set the watch clock to Home Assistant's current local time.
+  fields:
+    device_id:
+      name: Watch
+      description: Target watch (optional if only one is configured).
+      selector:
+        device:
+          integration: moyoung
+
+weather:
+  name: Push weather
+  description: >-
+    Push today's weather. The temperature is painted into any WEATHER_TEMP field on the
+    active face — so a face with that field becomes an arbitrary numeric readout you drive
+    from HA (the injection trick).
+  fields:
+    device_id:
+      name: Watch
+      selector:
+        device:
+          integration: moyoung
+    temp:
+      name: Temperature
+      description: Signed value shown on the WEATHER_TEMP field (-128..127).
+      required: true
+      example: 23
+      selector:
+        number:
+          min: -128
+          max: 127
+          mode: box
+    condition:
+      name: Condition icon
+      selector:
+        select:
+          options: [cloudy, foggy, overcast, rainy, snowy, sunny, wind, haze]
+    city:
+      name: City label
+      description: Up to 4 characters.
+      selector:
+        text:
+
+notify:
+  name: Notify
+  description: Push a notification onto the watch screen (injects arbitrary text).
+  fields:
+    device_id:
+      name: Watch
+      selector:
+        device:
+          integration: moyoung
+    title:
+      name: Title
+      required: true
+      example: Doorbell
+      selector:
+        text:
+    body:
+      name: Body
+      selector:
+        text:
+    type:
+      name: Type id
+      description: MoYoung notification type (default 11=other, 0=call).
+      selector:
+        number:
+          min: 0
+          max: 255
+          mode: box
+
+music:
+  name: Set now-playing
+  description: Push now-playing artist/track text.
+  fields:
+    device_id:
+      name: Watch
+      selector:
+        device:
+          integration: moyoung
+    track:
+      name: Track
+      selector:
+        text:
+    artist:
+      name: Artist
+      selector:
+        text:
+
+find:
+  name: Find watch
+  description: Buzz/ring the watch.
+  fields:
+    device_id:
+      name: Watch
+      selector:
+        device:
+          integration: moyoung
+
+camera:
+  name: Open camera remote
+  description: >-
+    Ask the watch to open its camera-remote screen (CMD_SWITCH_CAMERA_VIEW, 0x66). Optional and
+    manual — the shutter->lights automation does NOT need this; it only listens for the inbound
+    shutter opcode, which fires whether you open the camera screen here or on the watch itself.
+  fields:
+    device_id:
+      name: Watch
+      selector:
+        device:
+          integration: moyoung
+
+set_goal:
+  name: Set step goal
+  description: Set the daily step goal.
+  fields:
+    device_id:
+      name: Watch
+      selector:
+        device:
+          integration: moyoung
+    steps:
+      name: Steps
+      required: true
+      example: 12000
+      selector:
+        number:
+          min: 0
+          max: 100000
+          mode: box
+
+upload_face:
+  name: Upload face
+  description: Flash a MoYoung face .bin (must be under an allowlisted HA path).
+  fields:
+    device_id:
+      name: Watch
+      selector:
+        device:
+          integration: moyoung
+    path:
+      name: File path
+      description: Path to a MoYoung face .bin on the HA host.
+      required: true
+      example: /config/moyoung/face.bin
+      selector:
+        text:
+    slot:
+      name: Slot
+      description: Storage slot to upload into (default 6).
+      selector:
+        number:
+          min: 1
+          max: 6
+          mode: box
+    face_index:
+      name: Face index (override)
+      description: >-
+        Force the display-list index to activate. Leave empty to auto-detect the just-uploaded
+        custom face (query the face count/current and select it).
+      selector:
+        number:
+          min: 0
+          max: 255
+          mode: box
+    activate:
+      name: Auto-activate
+      description: Make the uploaded face the current displayed face (default true).
+      selector:
+        boolean:
+
+set_watch_face:
+  name: Set watch face
+  description: Select the active watch face by its display-list index (cmd 25). Returns the read-back index.
+  fields:
+    device_id:
+      name: Watch
+      selector:
+        device:
+          integration: moyoung
+    index:
+      name: Face index
+      required: true
+      example: 0
+      selector:
+        number:
+          min: 0
+          max: 255
+          mode: box
+
+get_watch_faces:
+  name: Get watch faces
+  description: Query the watch's face count and current index (cmd 132 + 41). Returns {count, current}.
+  fields:
+    device_id:
+      name: Watch
+      selector:
+        device:
+          integration: moyoung
