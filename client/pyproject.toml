@@ -1,0 +1,26 @@
+[project]
+name = "moyoung-client"
+version = "0.1.0"
+description = "Standalone BLE client for MoYoung-v2 / Da Fit smartwatches (e.g. MOY-ERJ3): custom watch-face flashing over Bluetooth"
+requires-python = ">=3.10"
+dependencies = ["bleak>=0.22"]
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[project.scripts]
+moyoung = "moyoung_client.cli:main"
+
+[tool.pytest.ini_options]
+# Project root on sys.path so `import moyoung_client` and `import tests` work without an install.
+# The whole suite is offline (no BLE, no bleak import needed for the protocol/format tests).
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["moyoung_client"]
