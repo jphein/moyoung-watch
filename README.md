@@ -1,8 +1,9 @@
 # MoYoung Watch
 
-Drive a **MoYoung-v2 / Da Fit** smartwatch (the cheap RTL8762-class rectangles — e.g. the
+Drive a **MoYoung-v2 / Da Fit** smartwatch (the ~$7 RTL8762-class rectangles — e.g. the
 **MOY-ERJ3 / TG38**, the ones whose manufacturer string reads `MOYOUNG-V2` and that pair with the
-*Da Fit* app) **entirely from Home Assistant over Bluetooth** — no phone, no vendor app, stock
+*Da Fit* app; [the exact listing this was built against](https://www.amazon.com/dp/B0H2S89WTD))
+**entirely from Home Assistant over Bluetooth** — no phone, no vendor app, stock
 firmware. Custom **solar watch faces**, live value injection, follow-me lighting, a
 camera-shutter room-light remote, and a standalone Python/CLI client all live here.
 

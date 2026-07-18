@@ -9,7 +9,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="MoYoung Watch">
 <meta property="og:url" content="https://jphein.github.io/moyoung-watch/">
-<meta property="og:title" content="MoYoung Watch — solar watch faces, driven by Home Assistant">
+<meta property="og:title" content="A $7 smartwatch, run entirely from Home Assistant">
 <meta property="og:description" content="Drive a MoYoung / Da Fit smartwatch entirely over Bluetooth from Home Assistant — custom solar watch faces with live State-of-Charge, TOU-aware auto-switching, camera-shutter lighting, and a standalone CLI. No phone app.">
 <meta property="og:image" content="https://jphein.github.io/moyoung-watch/assets/og-card.png">
 <meta property="og:image:type" content="image/png">
@@ -17,7 +17,7 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="MoYoung solar watch faces — a green off-peak face (78% State-of-Charge, 9:05 PM) and a red peak face — driven by Home Assistant over Bluetooth.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="MoYoung Watch — solar watch faces, driven by Home Assistant">
+<meta name="twitter:title" content="A $7 smartwatch, run entirely from Home Assistant">
 <meta name="twitter:description" content="Drive a MoYoung / Da Fit smartwatch entirely over Bluetooth from Home Assistant — solar faces, live SoC, TOU auto-switching, camera-shutter lighting, and a CLI.">
 <meta name="twitter:image" content="https://jphein.github.io/moyoung-watch/assets/og-card.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='8' y='3' width='16' height='26' rx='5' fill='%230a0d12' stroke='%23f5a623' stroke-width='2'/%3E%3Ccircle cx='16' cy='11' r='3.4' fill='%23f5a623'/%3E%3Ctext x='16' y='24' font-size='7' text-anchor='middle' fill='%2343d17a' font-family='monospace' font-weight='bold'%3E9:05%3C/text%3E%3C/svg%3E">
@@ -104,13 +104,15 @@
 <header class="hero">
   <div class="wrap">
     <span class="badge">MoYoung-v2 · Da Fit · MOY-ERJ3 / TG38</span>
-    <h1>A cheap smartwatch,<br><span class="grad">run entirely from Home&nbsp;Assistant</span></h1>
+    <h1>A $7 smartwatch,<br><span class="grad">run entirely from Home&nbsp;Assistant</span></h1>
     <p class="sub">No phone. No vendor app. Stock firmware. Custom solar watch faces, live value
       injection, follow-me lighting and a camera-shutter light remote — all over Bluetooth
       through your ESPHome proxies.</p>
     <div class="cta">
       <a class="btn primary" href="https://github.com/jphein/moyoung-watch">View on GitHub</a>
       <a class="btn ghost" href="face-builder.html">Face builder &amp; field reference →</a>
+      <a class="btn ghost" rel="noopener" target="_blank"
+         href="https://www.amazon.com/dp/B0H2S89WTD">Get the watch (~$7) →</a>
     </div>
   </div>
 </header>
@@ -276,11 +278,11 @@ cd ../solar-soc &amp;&amp; python3 build_tou.py   # → solar-offpeak/partial/pe
         <svg viewBox="0 0 24 24"><path d="M13.4 21v-8.2h2.7l.4-3.2h-3.1V7.6c0-.9.3-1.6 1.6-1.6h1.7V3.2c-.3 0-1.3-.2-2.5-.2-2.5 0-4.2 1.5-4.2 4.3v2.3H7.3v3.2H10V21h3.4z"/></svg>
         Facebook</a>
       <a class="btn share" target="_blank" rel="noopener"
-         href="https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fjphein.github.io%2Fmoyoung-watch%2F&t=Show%20HN%3A%20A%20cheap%20smartwatch%20run%20entirely%20from%20Home%20Assistant%20over%20BLE">
+         href="https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fjphein.github.io%2Fmoyoung-watch%2F&t=Show%20HN%3A%20A%20%247%20smartwatch%20run%20entirely%20from%20Home%20Assistant%20over%20BLE">
         <svg viewBox="0 0 24 24"><path d="M3 3h18v18H3V3zm8.2 10.4L7.4 6.8h1.9l2.7 4.9 2.7-4.9h1.9l-3.8 6.6v4.6h-1.6v-4.6z"/></svg>
         Hacker News</a>
       <a class="btn share" target="_blank" rel="noopener"
-         href="https://www.reddit.com/submit?url=https%3A%2F%2Fjphein.github.io%2Fmoyoung-watch%2F&title=A%20cheap%20smartwatch%20run%20entirely%20from%20Home%20Assistant%20%E2%80%94%20solar%20faces%2C%20no%20phone%20app">
+         href="https://www.reddit.com/submit?url=https%3A%2F%2Fjphein.github.io%2Fmoyoung-watch%2F&title=A%20%247%20smartwatch%20run%20entirely%20from%20Home%20Assistant%20%E2%80%94%20solar%20faces%2C%20no%20phone%20app">
         <svg viewBox="0 0 24 24"><path d="M14.5 4l1 3.6c1.6.1 3.1.6 4.2 1.4a2 2 0 112.2 3.3c.1.4.1.7.1 1.1 0 3.4-4 6.1-9 6.1s-9-2.7-9-6.1c0-.4 0-.7.1-1.1a2 2 0 112.2-3.3c1.2-.9 2.9-1.4 4.7-1.5l1.2-4.4 3.3.9zM9 12.8a1.3 1.3 0 100 2.6 1.3 1.3 0 000-2.6zm6 0a1.3 1.3 0 100 2.6 1.3 1.3 0 000-2.6zm-6.3 4.5c.9.7 2 1 3.3 1s2.4-.3 3.3-1l.7.8c-1.1.9-2.5 1.3-4 1.3s-2.9-.4-4-1.3l.7-.8z"/></svg>
         Reddit</a>
       <button class="btn share" onclick="copyThenOpen(this,'https://hackaday.com/submit-a-tip/')"
@@ -312,7 +314,7 @@ function copyThenOpen(btn, url){
 }
 function nativeShare(){
   navigator.share({ title:"MoYoung Watch — run from Home Assistant",
-    text:"A cheap smartwatch run entirely from Home Assistant over BLE — solar faces, no phone app.",
+    text:"A $7 smartwatch run entirely from Home Assistant over BLE — solar faces, no phone app.",
     url:SHARE_URL }).catch(()=>{});
 }
 if (navigator.share) document.querySelector(".btn.share.native").style.display = "inline-flex";
