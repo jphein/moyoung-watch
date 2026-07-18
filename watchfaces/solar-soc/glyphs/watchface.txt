@@ -1,0 +1,71 @@
+fileType       C
+fileID         0x81
+dataCount      6
+blobCount      54
+faceNumber     60002
+
+#              TYPE  INDEX      X    Y    W    H    FILENAME
+faceData       0x01    000      0    0  240  284    background000.bmp   # BACKGROUND
+faceData       0xD8    001    120   68   50   88    wt000.bmp           # SoC%% hero (WEATHER_TEMP_CA)
+faceData       0x40    014     52  196   28   46    ta000.bmp           # TIME_H1
+faceData       0x41    024     82  196   28   46    ta000.bmp           # TIME_H2
+faceData       0x43    034    128  196   28   46    ta000.bmp           # TIME_M1
+faceData       0x44    044    158  196   28   46    ta000.bmp           # TIME_M2
+
+# Compress every blob (dawft's C initializer only marks blob 0; the rest default to NONE).
+#             INDEX  CTYPE
+blobCompression 000  TRY_RLE
+blobCompression 001  TRY_RLE
+blobCompression 002  TRY_RLE
+blobCompression 003  TRY_RLE
+blobCompression 004  TRY_RLE
+blobCompression 005  TRY_RLE
+blobCompression 006  TRY_RLE
+blobCompression 007  TRY_RLE
+blobCompression 008  TRY_RLE
+blobCompression 009  TRY_RLE
+blobCompression 010  TRY_RLE
+blobCompression 011  TRY_RLE
+blobCompression 012  TRY_RLE
+blobCompression 013  TRY_RLE
+blobCompression 014  TRY_RLE
+blobCompression 015  TRY_RLE
+blobCompression 016  TRY_RLE
+blobCompression 017  TRY_RLE
+blobCompression 018  TRY_RLE
+blobCompression 019  TRY_RLE
+blobCompression 020  TRY_RLE
+blobCompression 021  TRY_RLE
+blobCompression 022  TRY_RLE
+blobCompression 023  TRY_RLE
+blobCompression 024  TRY_RLE
+blobCompression 025  TRY_RLE
+blobCompression 026  TRY_RLE
+blobCompression 027  TRY_RLE
+blobCompression 028  TRY_RLE
+blobCompression 029  TRY_RLE
+blobCompression 030  TRY_RLE
+blobCompression 031  TRY_RLE
+blobCompression 032  TRY_RLE
+blobCompression 033  TRY_RLE
+blobCompression 034  TRY_RLE
+blobCompression 035  TRY_RLE
+blobCompression 036  TRY_RLE
+blobCompression 037  TRY_RLE
+blobCompression 038  TRY_RLE
+blobCompression 039  TRY_RLE
+blobCompression 040  TRY_RLE
+blobCompression 041  TRY_RLE
+blobCompression 042  TRY_RLE
+blobCompression 043  TRY_RLE
+blobCompression 044  TRY_RLE
+blobCompression 045  TRY_RLE
+blobCompression 046  TRY_RLE
+blobCompression 047  TRY_RLE
+blobCompression 048  TRY_RLE
+blobCompression 049  TRY_RLE
+blobCompression 050  TRY_RLE
+blobCompression 051  TRY_RLE
+blobCompression 052  TRY_RLE
+blobCompression 053  TRY_RLE
+
