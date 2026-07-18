@@ -6,7 +6,7 @@ proven redesign (verified on-glass on the PEAK face 2026-07-17):
 
   solar-offpeak.bin  faceNumber 60002  GREEN   label "OFF-PEAK"   (cheap, relaxed)
   solar-partial.bin  faceNumber 60003  AMBER   label "PART PEAK"  (moderate)
-  solar-peak.bin     faceNumber 60004  RED     label "PEAK"       (expensive, conserve)   <-- md5-locked
+  solar-peak.bin     faceNumber 60004  RED     label "PEAK"       (expensive, conserve)
 
 REDESIGN (all ADDITIVE; proven render config preserved):
   #1 Drop the leading zero on the hour  — TIME_H1 (0x40) gets its OWN 10-frame set at blobs
@@ -49,7 +49,14 @@ SHIFT = 18                                    # hero5 sun+hero down-shift
 # hero5 field geometry (unchanged across themes; matches build5/watchface.txt)
 BATT_X, BATT_Y, BATT_DW, BATT_H, BATT_FONT = 207, 9, 10, 14, 15
 DATE_Y = 203
-DNUM_DW, DNUM_H, DATE_FONT = 13, 16, 18
+# DATE-DIGIT WHITE-BLOCK FIX (2026-07-18): DNUM_DW was 13 (ODD) -> RGB565 row = 13*2 = 26 bytes,
+# NOT 4-byte aligned. This firmware's raw (NONE) blit assumes a 4-byte-aligned scanline stride, so
+# an odd-width value-glyph shears into garbage "white blocks" on-glass. Every OTHER visible NONE
+# glyph is even-width and renders fine (hero 24, battery 10, weekday 40); the working vendor face
+# (dawft example1, fileType C) uses 12-wide date digits. Fix = EVEN width (12, vendor-proven). The
+# clock is odd (33) but RLE_LINE, decoded into an aligned buffer, so it's immune. Compression was
+# ALREADY NONE (the RLE hypothesis was disproven) — this is purely a stride/alignment fix.
+DNUM_DW, DNUM_H, DATE_FONT = 12, 16, 18
 MONTH_X, DAY_X = 114, 158
 SEP_X0, SEP_X1 = 146, 154
 WD_X, WD_W, WD_H, WD_FONT = 54, 40, 16, 15
@@ -64,6 +71,10 @@ LBL_FONT = 17
 
 # --- redesign field parameters ----------------------------------------------
 H1_BASE = 92                                  # dedicated TIME_H1 set 092..101
+H1_X, H1_W = 16, 34                           # H1 tens-hour slot @ x16; EVEN width (33->34) so the
+                                              # set can be NONE (stride-safe, like the even-width date
+                                              # fix that rendered on-glass) with a RAW pixel-exact
+                                              # blank frame-0 -> invisible with no RLE-flat decode.
 SPARK_IDX = 102                               # HAND_SEC blob (spark variant only)
 # AM/PM superscript, just right of M2 (ends x188). Over flat sky -> composites seamlessly.
 AMPM_X, AMPM_Y, AMPM_W, AMPM_H, AMPM_FONT = 193, 157, 26, 18, 14
@@ -76,7 +87,6 @@ THEMES = [
     dict(
         name="offpeak", face="solar-offpeak.bin", facenum=60002, spark_facenum=60010, label="OFF-PEAK",
         desc="GREEN off-peak: cool mint sun+glow, green panel glints & accents, bright mint-white SoC hero",
-        GLOW_SIG=10.5,   # tighter than peak's 13.0 to stay under the 88064 B envelope (green quantizes worse)
         SKY=(12, 34, 26), GROUND=(6, 18, 14),
         SUN_RGB=(120, 230, 140), SUN_CORE=(200, 255, 205), GLOW_RGB=(70, 200, 110),
         HORIZON=(34, 78, 50),
@@ -91,7 +101,6 @@ THEMES = [
     dict(
         name="partial", face="solar-partial.bin", facenum=60003, spark_facenum=60011, label="PART PEAK",
         desc="AMBER partial-peak: warm orange sun+glow, amber panel glints & accents, pale warm-white SoC hero",
-        GLOW_SIG=10.5,   # tighter than peak's 13.0 to stay under the 88064 B envelope (amber quantizes worse)
         SKY=(38, 28, 12), GROUND=(20, 14, 6),
         SUN_RGB=(255, 176, 60), SUN_CORE=(255, 214, 130), GLOW_RGB=(245, 140, 40),
         HORIZON=(96, 58, 24),
@@ -127,15 +136,11 @@ def apply_palette(t, build_dir):
     bh.SUN_CY = 30 + SHIFT       # 48
     bh.GLOW_YMAX = 66 + SHIFT    # 84 (glow clips 6px above hero band @ 90)
     bh.HERO_Y = 72 + SHIFT       # 90
-    # Tighter glow than hero5 (sig 20 -> 14): green/amber tints quantize to more distinct
-    # RGB565 values per row, hurting the RLE_LINE bg blob. Concentrating the glow near the
-    # sun keeps most of the sky FLAT (1 run/row) so the RLE bg fits the <=86KB budget; the
-    # flat tinted sky + sun + panels + label already carry the "whole-face" period colour.
-    # Peak is md5-locked at sigma 13.0 (its flashed+verified build). The green/amber tints quantize
-    # to more distinct RGB565 values, so their glow gradient costs more RLE — after the redesign
-    # additions they'd exceed the 88064 B envelope. Tightening ONLY their glow (peak untouched) keeps
-    # them in budget; the flat tinted sky + sun + panels + label still carry the period colour.
-    bh.GLOW_SIG = t.get("GLOW_SIG", 13.0)
+    # FULL sun-glow (sigma 20.0 = the hero5-proven value) for ALL themes. Earlier builds tightened
+    # this for a size budget, but there is NO size cap — the stock ref face erj3_ref_20078.bin is
+    # 122 KB and runs fine; chunked upload handles any size — so we restore full quality. Glow
+    # hard-clips at GLOW_YMAX=84, 6px above the hero band (y90), so the hero band stays flat / X-invariant.
+    bh.GLOW_SIG = 20.0
     # palette
     for k in ("SKY", "GROUND", "SUN_RGB", "SUN_CORE", "GLOW_RGB", "HORIZON",
               "PANEL", "PANEL_HI", "PANEL_FRM", "PANEL_GLNT",
@@ -200,16 +205,16 @@ def build_ampm(t):
 
 
 def build_h1_set(t):
-    """Dedicated TIME_H1 set (hour-tens digit). Frame0 BLANK -> leading zero vanishes. DESIGNED FOR
-    12-HOUR MODE (AM/PM), where hour-tens is only 0 or 1, so ONLY frame1 ('1', for 10/11/12) is a
-    real digit; frames 0 and 2-9 are BLANK to stay in RLE budget. Matches the clock font/colour/band
-    so '10:42' reads uniform.
-    TRADEOFF (documented): in 24h mode hours 20-23 (tens='2') would blank the tens digit. Restore
-    frame2 as a '2' glyph if this face is ever run in 24h mode (~930 B; the faces have the headroom)."""
-    blank = bh.blank_tile(bh.CLOCK_DW, bh.CLOCK_H, bh.CLOCK_Y)
+    """Dedicated TIME_H1 set (hour-tens digit). Frame0 BLANK -> leading zero vanishes; it is the EXACT
+    scene crop under the H1 slot (blank_fixed) so it's a raw, pixel-perfect copy of the background ->
+    invisible on-glass regardless of theme (the earlier col-0 blank_tile + RLE showed as a static
+    block). Frames 1 & 2 are real digits ('1' for 10/11/12 in 12h; '2' for 20-23 in 24h) so BOTH time
+    modes render the tens digit. Frames 3-9 stay blank. Built at EVEN width (H1_W) so the whole set is
+    NONE (stride-safe) with no RLE. Clock font/colour so '10:42' / '21:07' read uniform."""
+    blank = bh.blank_fixed(H1_X, bh.CLOCK_Y, H1_W, bh.CLOCK_H)
     for n in range(10):
-        if n == 1:
-            bh.save_blob(bh.glyph_tile(str(n), bh.CLOCK_DW, bh.CLOCK_H, bh.CLOCK_Y,
+        if n in (1, 2):
+            bh.save_blob(bh.glyph_tile(str(n), H1_W, bh.CLOCK_H, bh.CLOCK_Y,
                                        bh.F_BOLD, bh.CLOCK_FONT, t["CLOCK_RGB"]), H1_BASE + n)
         else:
             bh.save_blob(blank, H1_BASE + n)
@@ -230,9 +235,9 @@ def build_spark(t):
 
 
 def build_preview(t, idx):
-    """Lean 140x163 carousel preview (MUST be 140x163, MUST be last blob). Flat sky/ground + solid
-    sun + solid panel rects + '78%' — no label/outlines/core so RLE crushes it, reclaiming the
-    budget the added H1 blobs consume. Period identity still reads from the theme colour."""
+    """FULL-quality 140x163 carousel preview (MUST be 140x163, MUST be the last blob): flat sky/ground
+    + sun with core + panel array (outlined) + '78%' hero + the period label. No size budget, so the
+    thumbnail carries the full themed scene + period identity."""
     pw, ph = 140, 163
     im = Image.new("RGB", (pw, ph))
     px = im.load()
@@ -243,13 +248,18 @@ def build_preview(t, idx):
             px[x, y] = c
     d = ImageDraw.Draw(im)
     scx = pw // 2
-    d.ellipse([scx - 15, 34, scx + 15, 64], fill=t["SUN_RGB"])          # solid sun
+    d.ellipse([scx - 15, 34, scx + 15, 64], fill=t["SUN_RGB"])              # sun
+    d.ellipse([scx - 7, 42, scx + 7, 56], fill=t["SUN_CORE"])              # sun core
     for ci in range(5):
         x0 = 24 + ci * 19
-        d.rectangle([x0, hy + 8, x0 + 15, hy + 26], fill=t["PANEL"])    # solid panels (no outline)
+        d.rectangle([x0, hy + 8, x0 + 15, hy + 26], fill=t["PANEL"], outline=t["PANEL_FRM"])
     f = ImageFont.truetype(bh.F_BOLD, 30)
     tb = d.textbbox((0, 0), "78%", font=f)
     d.text((scx - (tb[2] - tb[0]) / 2 - tb[0], 74), "78%", font=f, fill=t["HERO_RGB"])
+    lf = ImageFont.truetype(bh.F_BOLD, 13)                                  # period label
+    lb = d.textbbox((0, 0), t["label"], font=lf)
+    d.text((scx - (lb[2] - lb[0]) / 2 - lb[0], 112 - (lb[3] - lb[1]) / 2 - lb[1]),
+           t["label"], font=lf, fill=t["LBL_RGB"])
     im.save(os.path.join(bh.BUILD, f"{idx:03d}.bmp"))
 
 
@@ -264,11 +274,15 @@ def write_watchface(build_dir, facenum, datacount, blobcount, spark, preview_idx
         elif tk[:1] == ["faceNumber"]:
             out.append(f"faceNumber     {facenum}")
         elif tk[:2] == ["faceData", "0x40"]:
-            out.append("faceData        0x40    092     16  155   33   44          # TIME_H1 (dedicated blank-frame0 set -> drops leading zero)")
+            out.append(f"faceData        0x40    092     {H1_X}  155   {H1_W}   44          # TIME_H1 (dedicated blank-frame0 set -> drops leading zero)")
         elif tk[:2] == ["faceData", "0x45"]:
             out.append(f"faceData        0x45    041    {AMPM_X}  {AMPM_Y}   {AMPM_W}   {AMPM_H}          # TIME_AM")
         elif tk[:2] == ["faceData", "0x46"]:
             out.append(f"faceData        0x46    042    {AMPM_X}  {AMPM_Y}   {AMPM_W}   {AMPM_H}          # TIME_PM")
+        elif tk[:2] == ["faceData", "0x30"]:   # DAY_NUM  — emit current (even) dims so faceData == blob size
+            out.append(f"faceData        0x30    073    {DAY_X}  {DATE_Y}   {DNUM_DW}   {DNUM_H}          # DAY_NUM")
+        elif tk[:2] == ["faceData", "0x11"]:   # MONTH_NUM — even-width date-digit fix
+            out.append(f"faceData        0x11    073    {MONTH_X}  {DATE_Y}   {DNUM_DW}   {DNUM_H}          # MONTH_NUM")
         elif tk[:2] == ["faceData", "0xd6"]:
             out.append(ln)
             if spark:
@@ -279,7 +293,7 @@ def write_watchface(build_dir, facenum, datacount, blobcount, spark, preview_idx
             out.append(ln)
     # append new blob compression lines (ascending), preview LAST
     for i in range(92, 102):
-        out.append(f"blobCompression {i:03d}  RLE_LINE")       # H1 set: match proven clock digits (011-020 RLE)
+        out.append(f"blobCompression {i:03d}  NONE")           # H1 set: even width -> NONE (stride-safe), raw exact blank
     if spark:
         out.append(f"blobCompression {SPARK_IDX:03d}  RLE_LINE")  # spark: mostly-black flat rows crush under RLE
     out.append(f"blobCompression {preview_idx:03d}  RLE_LINE") # preview (last blob)

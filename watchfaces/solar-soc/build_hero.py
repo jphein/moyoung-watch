@@ -51,19 +51,8 @@ PCT_RGB   = (245, 180, 70)    # slightly deeper amber for the "%" unit
 CLOCK_RGB = (236, 242, 250)   # soft white clock
 COLON_RGB = (150, 165, 185)   # muted slate colon
 
-def find_font(name):
-    """Resolve a DejaVu TTF across distros: $MOYOUNG_FONT_DIR, common system dirs, else bare
-    name (PIL then searches its own font path). Install `fonts-dejavu` (Debian/Ubuntu/HAOS)."""
-    for d in (os.environ.get("MOYOUNG_FONT_DIR"),
-              "/usr/share/fonts/truetype/dejavu",             # Debian / Ubuntu / HAOS
-              "/usr/share/fonts/dejavu", "/usr/share/fonts/TTF",  # Fedora / Arch
-              "/Library/Fonts", "/System/Library/Fonts/Supplemental"):  # macOS
-        if d and os.path.exists(os.path.join(d, name)):
-            return os.path.join(d, name)
-    return name
-
-FONT_DIR = os.environ.get("MOYOUNG_FONT_DIR", "/usr/share/fonts/truetype/dejavu")
-F_BOLD = find_font("DejaVuSans-Bold.ttf")
+FONT_DIR = "/usr/share/fonts/truetype/dejavu"
+F_BOLD = os.path.join(FONT_DIR, "DejaVuSans-Bold.ttf")
 
 # ---- geometry ------------------------------------------------------------
 HERO_X, HERO_Y = 120, 72      # 0xd8 anchor: X=120 face centre (firmware centres value); above clock
@@ -169,15 +158,22 @@ def bg_col(y):
     return _bg_cache[y]
 
 # ---- halo-free glyph tile over the exact per-row bg ----------------------
-def glyph_tile(text, box_w, box_h, y0, font_path, font_size, color, levels=48):
+def glyph_tile(text, box_w, box_h, y0, font_path, font_size, color, levels=48, xalign="center"):
     S = 4
     mask_big = Image.new("L", (box_w * S, box_h * S), 0)
     dm = ImageDraw.Draw(mask_big)
     bf = ImageFont.truetype(font_path, font_size * S)
     bb = dm.textbbox((0, 0), text, font=bf)
-    tw, th = bb[2] - bb[0], bb[3] - bb[1]
-    tx = (box_w * S - tw) / 2 - bb[0]
-    ty = (box_h * S - th) / 2 - bb[1]
+    tw = bb[2] - bb[0]
+    if xalign == "left":
+        tx = 2 * S - bb[0]                 # hug the left edge -> a unit glyph sits next to the digits
+    else:
+        tx = (box_w * S - tw) / 2 - bb[0]  # horizontal ink-centering (unchanged default)
+    # VERTICAL: place a FIXED reference band (digit "8") — NOT this glyph's own tight bbox — so EVERY
+    # glyph (round or flat, digit or unit) at a given font_size shares ONE baseline. Per-glyph bbox
+    # centering shifted baselines by a sub-pixel, which the firmware reads as "not level" on-glass.
+    rbb = dm.textbbox((0, 0), "8", font=bf)
+    ty = (box_h * S - (rbb[3] - rbb[1])) / 2 - rbb[1]
     dm.text((tx, ty), text, font=bf, fill=255)
     mask = mask_big.resize((box_w, box_h), Image.LANCZOS)
     mpx = mask.load()
@@ -219,8 +215,10 @@ def build_hero():
     for n in range(10):
         save_blob(glyph_tile(str(n), HERO_DW, HERO_H, HERO_Y, F_BOLD, HERO_FONT, HERO_RGB), 53 + n)
     save_blob(blank_tile(HERO_DW, HERO_H, HERO_Y), 63)                                   # minus slot
-    save_blob(glyph_tile("%", HERO_PW, HERO_H, HERO_Y, F_BOLD, PCT_FONT, PCT_RGB), 64)   # unit A
-    save_blob(glyph_tile("%", HERO_PW, HERO_H, HERO_Y, F_BOLD, PCT_FONT, PCT_RGB), 65)   # unit B
+    # % unit: SAME font as the digits (HERO_FONT) so it shares their baseline reference, and LEFT-
+    # aligned in its double-width (48px) slot so it hugs the digits instead of floating centred.
+    save_blob(glyph_tile("%", HERO_PW, HERO_H, HERO_Y, F_BOLD, HERO_FONT, PCT_RGB, xalign="left"), 64)
+    save_blob(glyph_tile("%", HERO_PW, HERO_H, HERO_Y, F_BOLD, HERO_FONT, PCT_RGB, xalign="left"), 65)
 
 def build_clock():
     for n in range(10):
