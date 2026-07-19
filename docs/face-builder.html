@@ -144,7 +144,7 @@
       <p>Every live field the MoYoung / Da Fit face format can paint into a custom watch face — mapped from the format tooling and flashed over Bluetooth onto a real MOY-ERJ3 with our own CLI.</p>
       <div class="badges">
         <span class="badge"><b>67</b> face fields</span>
-        <span class="badge"><b>2</b> inject slots</span>
+        <span class="badge"><b>3</b> inject slots</span>
         <span class="badge">full <b>CLI</b> + <b>HA</b></span>
         <span class="badge">BLE-proxy <b>room tracking</b></span>
         <span class="badge">verified <b>on-glass</b></span>
@@ -359,9 +359,9 @@ moyoung --address D8:69:.. upload-face face.bin   <span class="c"># flash it</sp
       <div class="cards">
         <div class="card"><h3><span class="sw" style="background:var(--amber)"></span>WEATHER_TEMP</h3><p>A signed number (−128…127) via <code>weather --temp</code>. The cleanest slot — big and purpose-built. Drives any <code>WEATHER_TEMP</code> field.</p><span class="tag">slot 1 · clean</span></div>
         <div class="card"><h3><span class="sw" style="background:var(--green)"></span>STEPS_GOAL</h3><p>An integer (0…100k) via <code>set-goal</code>. A genuine second slot — drives the <code>STEPS_GOAL</code> field. (Overwrites the real step goal.)</p><span class="tag">slot 2 · clean</span></div>
-        <div class="card"><h3><span class="sw" style="background:var(--cyan)"></span>WEATHER&nbsp;CONDITION&nbsp;ICON</h3><p>Field <code>0xd6</code> — a <b>9-frame image array</b> (found on the stock face, unknown to dawft) whose frame is selected by the weather <code>condition</code> byte (0–7) the weather command <em>already</em> sends. An <b>8-state injectable graphic</b> — not just a number — with no new command code. <em>Confirming on-glass now.</em></p><span class="tag">slot 3 · icon · verifying</span></div>
+        <div class="card"><h3><span class="sw" style="background:var(--cyan)"></span>WEATHER&nbsp;CONDITION&nbsp;ICON</h3><p>Field <code>0xd6</code> — a <b>9-frame image array</b> (on the stock face; unknown to dawft) whose frame is selected by the weather <code>condition</code> byte (0–7) the weather command already sends. An <b>8-state injectable graphic</b>, not a number — feed it real icon frames (~19×19), not digits. No new command code.</p><span class="tag">slot 3 · icon</span></div>
         <div class="card"><h3><span class="sw" style="background:var(--muted)"></span>clock / date</h3><p>Via <code>set-time</code> — hijackable like the GTX2 day-field trick, but it ticks and reformats, so it's messy. A last resort.</p><span class="tag">time-natured</span></div>
-        <div class="card"><h3><span class="sw" style="background:var(--red)"></span>not injectable</h3><p>Steps, heart rate, calories, distance and watch battery are <b>sensors the watch measures</b>. Music/notification text has <b>no face field</b>.</p><span class="tag">sensor · text</span></div>
+        <div class="card"><h3><span class="sw" style="background:var(--red)"></span>not injectable</h3><p>Steps, HR, calories, distance, battery are <b>sensors the watch measures</b>. Music/notification text has <b>no face field</b>. And though the weather command also transmits <b>pm2.5, city, lunar</b>, on-glass probing found <b>no placeable face field</b> for them on this firmware — the extra weather-cluster field codes render but stay 0 (sensor-owned).</p><span class="tag">3 inject slots</span></div>
       </div>
     </div>
   </section>
