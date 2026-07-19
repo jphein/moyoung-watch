@@ -276,6 +276,24 @@
 
   <section>
     <div class="wrap">
+      <div class="eyebrow">Know before you build</div>
+      <h2>Limits &amp; constraints</h2>
+      <p class="lead">The hard edges of the format — canvas, colour, compression and value ranges — learned by building and flashing real faces onto a MOY-ERJ3 over Bluetooth.</p>
+      <div class="cards">
+        <div class="card"><h3><span class="sw" style="background:var(--muted)"></span>Canvas</h3><p><b>240 &times; 284&nbsp;px</b>, portrait. Type&nbsp;C, <code>fileID 0x81</code>. The background (field <code>0x01</code>) is one full-screen image; every other field places a rectangle over it.</p><span class="tag">240 &times; 284</span></div>
+        <div class="card"><h3><span class="sw" style="background:var(--cyan)"></span>Colour</h3><p><b>RGB565</b>, 16-bit, <b>no alpha</b> — dawft drops the alpha channel when packing, so transparency must be baked as the exact background colour under each glyph.</p><span class="tag">rgb565</span></div>
+        <div class="card"><h3><span class="sw" style="background:var(--amber)"></span>Compression recipe</h3><p><b>Background <code>RLE_LINE</code>; every other blob <code>NONE</code>.</b> Mixing RLE and raw blobs corrupts the render on this firmware (MOY-ERJ3&nbsp;2.0.7) — a uniform uncompressed layer over one RLE background is the reliable state, proven on-glass.</p><span class="tag">bg RLE · rest raw</span></div>
+        <div class="card"><h3><span class="sw" style="background:var(--green)"></span>Face size</h3><p>No practical cap — a <b>~180&nbsp;KB</b> face flashes fine. The upload is chunked and reassembled by announced length, so bigger just takes longer over BLE (a raw face runs larger than a compressed one).</p><span class="tag">chunked</span></div>
+        <div class="card"><h3><span class="sw" style="background:var(--blue)"></span>Glyph strips</h3><p>Digit fields need a <b>10</b>-frame 0–9 strip; progress bars <b>11</b> (0–100%); month names <b>12</b>; weekday names <b>7</b>; icons/hands <b>1</b>. The firmware indexes the strip by the live value.</p><span class="tag">frame counts</span></div>
+        <div class="card"><h3><span class="sw" style="background:var(--pink)"></span>Injection ranges</h3><p><code>WEATHER_TEMP</code>: signed <b>−128…127</b>. <code>STEPS_GOAL</code>: <b>0…100000</b>. Those two are the only fields that accept an arbitrary external value — everything else shows the watch's own sensors.</p><span class="tag">2 slots</span></div>
+        <div class="card"><h3><span class="sw" style="background:var(--red)"></span>No text channel</h3><p>Every on-face value is one of the 67 typed fields — there is <b>no free-form text field</b>. Names/labels must be baked into the artwork; live text exists only as transient notification / now-playing popups.</p><span class="tag">typed only</span></div>
+        <div class="card"><h3><span class="sw" style="background:var(--muted)"></span>Face slot</h3><p>The custom-face slot is limited; a new upload <b>replaces the active custom face</b>. "Switching" faces (e.g. by time-of-use period) means re-flashing the matching design.</p><span class="tag">re-flash to switch</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
       <div class="eyebrow">Binary layout</div>
       <h2>Inside a face .bin</h2>
       <p class="lead">The header is fixed; each field is a type code plus a placement rectangle; the blobs (bitmaps) follow. Type B/C use a full-screen background and 16-bit coordinates; the older Type A tiles the background in strips.</p>
@@ -369,7 +387,7 @@ moyoung --address D8:69:.. upload-face face.bin   <span class="c"># flash it</sp
       <div class="cards">
         <div class="card"><h3><span class="sw" style="background:var(--amber)"></span>Big SoC %</h3><p>Hero number = <code>WEATHER_TEMP</code>, injected from the 48V solar pack (<code>sensor.epever_battery_soc</code>) via <code>moyoung.weather</code>.</p><span class="tag">slot 1</span></div>
         <div class="card"><h3><span class="sw" style="background:var(--blue)"></span>Clock</h3><p>The watch's own HH:MM, kept synced via <code>moyoung.set_time</code>.</p><span class="tag">native</span></div>
-        <div class="card"><h3><span class="sw" style="background:var(--green)"></span>Rate ¢/kWh</h3><p><code>STEPS_GOAL</code>, injected from a PG&E time-of-use template — <b>peak 40 · partial 33 · off-peak 20</b> — via <code>moyoung.set_goal</code>. Shows the price, implies the period.</p><span class="tag">slot 2</span></div>
+        <div class="card"><h3><span class="sw" style="background:var(--green)"></span>Grid watts</h3><p><code>STEPS_GOAL</code>, injected from <code>sensor.total_grid_power</code> via <code>moyoung.set_goal</code> — live grid draw in watts at the foot of the face. The GTX2 live-kW readout, on the MoYoung. (The face palette also shifts green/amber/red with the PG&E time-of-use period.)</p><span class="tag">slot 2</span></div>
       </div>
       <div class="callout"><h3>Live, no re-flash</h3><p>The face installs once; HA pushes the two values whenever they change — SoC follows the battery, the rate follows the time-of-use schedule. It's the pattern the GTX2 uses for grid kW, here with two independent channels instead of one.</p></div>
     </div>
@@ -388,7 +406,7 @@ moyoung --address D8:69:.. upload-face face.bin   <span class="c"># flash it</sp
   </section>
 </main>
 
-<footer>MoYoung-v2 · MOY-ERJ3 · faces · control · injection · Home Assistant · room tracking · verified on hardware 2026-07-16</footer>
+<footer>MoYoung-v2 · MOY-ERJ3 · faces · control · injection · Home Assistant · room tracking · verified on hardware 2026-07-18</footer>
 
 <script>
 // ---- rectangular watch-face preview (240x280, drawn at 2x) ----
